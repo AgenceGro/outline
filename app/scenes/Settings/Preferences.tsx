@@ -95,8 +95,7 @@ function Preferences() {
 
   const handleUseCursorPointerChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.UseCursorPointer, checked);
-      await user.save();
+      await user.savePreference(UserPreference.UseCursorPointer, checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -104,8 +103,7 @@ function Preferences() {
 
   const handleCodeBlockLineNumbersChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.CodeBlockLineNumers, checked);
-      await user.save();
+      await user.savePreference(UserPreference.CodeBlockLineNumers, checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -113,8 +111,7 @@ function Preferences() {
 
   const handleCommentsInGutterChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.CommentsInGutter, checked);
-      await user.save();
+      await user.savePreference(UserPreference.CommentsInGutter, checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -122,8 +119,7 @@ function Preferences() {
 
   const handleShowDocumentStatsChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.ShowDocumentStats, checked);
-      await user.save();
+      await user.savePreference(UserPreference.ShowDocumentStats, checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -131,8 +127,7 @@ function Preferences() {
 
   const handleSeamlessEditChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.SeamlessEdit, !checked);
-      await user.save();
+      await user.savePreference(UserPreference.SeamlessEdit, !checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -140,8 +135,7 @@ function Preferences() {
 
   const handleRememberLastPathChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.RememberLastPath, checked);
-      await user.save();
+      await user.savePreference(UserPreference.RememberLastPath, checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -149,8 +143,7 @@ function Preferences() {
 
   const handleEnableSmartTextChange = React.useCallback(
     async (checked: boolean) => {
-      user.setPreference(UserPreference.EnableSmartText, checked);
-      await user.save();
+      await user.savePreference(UserPreference.EnableSmartText, checked);
       toast.success(t("Preferences saved"));
     },
     [user, t]
@@ -179,11 +172,10 @@ function Preferences() {
 
   const handleNotificationBadgeChange = React.useCallback(
     async (value: string) => {
-      user.setPreference(
+      await user.savePreference(
         UserPreference.NotificationBadge,
         value as NotificationBadgeType
       );
-      await user.save();
       toast.success(t("Preferences saved"));
     },
     [user, t]
