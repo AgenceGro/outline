@@ -4,7 +4,6 @@ import styled from "styled-components";
 import Flex from "@shared/components/Flex";
 import { s } from "@shared/styles";
 import { getHostname, isLoopbackUri } from "@shared/utils/urls";
-import { isAppRootDomain } from "~/utils/urls";
 import { OAuthClientValidation } from "@shared/validations";
 import type OAuthClient from "~/models/oauth/OAuthClient";
 import ButtonLarge from "~/components/ButtonLarge";
@@ -13,9 +12,7 @@ import Heading from "~/components/Heading";
 import LoadingIndicator from "~/components/LoadingIndicator";
 import PageTitle from "~/components/PageTitle";
 import Text from "~/components/Text";
-import env from "~/env";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
-import { useWorkspaceSessions } from "~/hooks/useWorkspaceSessions";
 import useQuery from "~/hooks/useQuery";
 import useRequest from "~/hooks/useRequest";
 import { client } from "~/utils/ApiClient";
@@ -25,38 +22,20 @@ import {
   NotFoundError,
   UnprocessableEntityError,
 } from "~/utils/errors";
-import isCloudHosted from "~/utils/isCloudHosted";
 import { detectLanguage } from "~/utils/language";
 import Login from "./Login";
 import { OAuthScopeHelper } from "./OAuthScopeHelper";
 import { Background } from "./components/Background";
 import { Centered } from "./components/Centered";
 import { ConnectHeader } from "./components/ConnectHeader";
-import { TeamSwitcher } from "./components/TeamSwitcher";
 import { Form } from "~/components/primitives/Form";
 
 export default function OAuthAuthorize() {
-  const { t } = useTranslation();
   const team = useCurrentTeam({ rejectOnEmpty: false });
-  const sessions = useWorkspaceSessions();
 
-  // We're self-hosted or on a team subdomain already, just show the authorize screen.
+  // Already signed in, so show the authorize screen.
   if (team) {
     return <Authorize />;
-  }
-
-  // Cloud hosted and on root domain – show the workspace switcher.
-  const hasRememberedWorkspaces = Object.keys(sessions).length > 0;
-  if (isCloudHosted && hasRememberedWorkspaces && isAppRootDomain()) {
-    return (
-      <TeamSwitcher
-        sessions={sessions}
-        description={t(
-          "Choose an {{ appName }} workspace or log in to continue connecting this app",
-          { appName: env.APP_NAME }
-        )}
-      />
-    );
   }
 
   return <Login />;
@@ -190,7 +169,7 @@ function Authorize() {
           ) : clientError instanceof AuthorizationError ? (
             <Text as="p" type="secondary">
               {t(
-                "The OAuth client could not be loaded – please check that your workspace subdomain is correct"
+                "The OAuth client could not be loaded. Please check that the address is correct."
               )}
               <Pre>{clientError.message}</Pre>
             </Text>

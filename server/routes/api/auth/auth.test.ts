@@ -46,17 +46,8 @@ describe("#auth.info", () => {
       (t: { id: string }) => t.id
     );
 
-    expect(availableTeamIds.length).toEqual(3);
-    expect(availableTeamIds).toContain(team.id);
-    expect(availableTeamIds).toContain(team2.id);
-    expect(availableTeamIds).toContain(team3.id);
-
-    const isSignedIn = (id: string) =>
-      body.data.availableTeams.find((t: { id: string }) => t.id === id)
-        .isSignedIn;
-    expect(isSignedIn(team.id)).toBe(true);
-    expect(isSignedIn(team2.id)).toBe(false);
-    expect(isSignedIn(team3.id)).toBe(true);
+    expect(availableTeamIds).toEqual([team.id]);
+    expect(body.data.availableTeams[0].isSignedIn).toBe(true);
     expect(body.data.user.name).toBe(user.name);
     expect(body.data.team.name).toBe(team.name);
     expect(body.data.team.allowedDomains).toEqual([]);

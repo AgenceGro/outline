@@ -189,7 +189,7 @@ export const CollectionForm = observer(function CollectionForm_({
         )}
       />
 
-      {team.sharing && (
+      {team.sharing && !collection?.isManaged && (
         <Controller
           control={control}
           name="sharing"

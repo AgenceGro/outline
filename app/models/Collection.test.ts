@@ -21,6 +21,18 @@ describe("Collection model", () => {
     expect(shared.displayName).toBe("Design");
   });
 
+  it("should know when an agent manages the collection", () => {
+    const managed = stores.collections.add({
+      id: "managed-1",
+      name: "Altai",
+      managedBy: "altai",
+    });
+    const unmanaged = stores.collections.add({ id: "managed-2", name: "Ops" });
+
+    expect(managed.isManaged).toBe(true);
+    expect(unmanaged.isManaged).toBe(false);
+  });
+
   it("should not add a document that is already in the collection", () => {
     const collection = stores.collections.add({
       id: "abc",

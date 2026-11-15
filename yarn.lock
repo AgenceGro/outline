@@ -10294,6 +10294,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"framer-motion@npm:14.12.0":
+  version: 14.12.0
+  resolution: "framer-motion@npm:14.12.0"
+  dependencies:
+    motion-dom: "npm:14.12.0"
+    motion-utils: "npm:14.7.0"
+    tslib: "npm:^2.4.0"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+    remix: ^3.1.0
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    remix:
+      optional: true
+  checksum: 10c0/ee971f8000721c29404331e47ca01ecb3a800d15f111604c13f4f54e1dd9f973f5a00ec6fbcb438ca36b1eb92566a346dd9e633af7f817bef852553364abf9c4
+  languageName: node
+  linkType: hard
+
 "framer-motion@npm:^13.5.1":
   version: 13.5.1
   resolution: "framer-motion@npm:13.5.1"
@@ -12944,6 +12966,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lucide-react@npm:^1.71.0":
+  version: 1.71.0
+  resolution: "lucide-react@npm:1.71.0"
+  peerDependencies:
+    "@types/react": "*"
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10c0/5c7b5e8ddad36e23fe2e3d59abea791f7da1b5392c4f34d0e8f07872c59f6e1ae91829148f1ec7e2a22b4a942a475d6ffbc94d4ff24bcc29caee8dec1b02584d
+  languageName: node
+  linkType: hard
+
 "luxon@npm:^3.2.1":
   version: 3.7.2
   resolution: "luxon@npm:3.7.2"
@@ -13403,10 +13438,47 @@ __metadata:
   languageName: node
   linkType: hard
 
+"motion-dom@npm:14.12.0":
+  version: 14.12.0
+  resolution: "motion-dom@npm:14.12.0"
+  dependencies:
+    motion-utils: "npm:14.7.0"
+  checksum: 10c0/f1266899afe5e1fb87d273db2236ffac7fa7915b7fe0e31bd8dc284d3e9127d4fa201a610568afa7ef4f4e5f073ce239a5ef0b20490fc8dbfa6e4edb19b6f145
+  languageName: node
+  linkType: hard
+
 "motion-utils@npm:13.5.0":
   version: 13.5.0
   resolution: "motion-utils@npm:13.5.0"
   checksum: 10c0/25182af58dafe8aafd596106529ee3bcf39f1295c2cf1016eded6f8876cfd28c550c368fe2d4167dad0782c5ea106c06c39efaedbbb1be2a7cb325b1a827ed11
+  languageName: node
+  linkType: hard
+
+"motion-utils@npm:14.7.0":
+  version: 14.7.0
+  resolution: "motion-utils@npm:14.7.0"
+  checksum: 10c0/99f4fff3c164998a053ae698f171858735631d4da980d27de67817899a708b2d6ba7246a8fb007b1d883dfd90ee06cfaa1dcfb55abb00511c8e169eb0bd14769
+  languageName: node
+  linkType: hard
+
+"motion@npm:^14.12.0":
+  version: 14.12.0
+  resolution: "motion@npm:14.12.0"
+  dependencies:
+    framer-motion: "npm:14.12.0"
+    tslib: "npm:^2.4.0"
+  peerDependencies:
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+    remix: ^3.1.0
+  peerDependenciesMeta:
+    react:
+      optional: true
+    react-dom:
+      optional: true
+    remix:
+      optional: true
+  checksum: 10c0/98780277cbaed1803375039e0dae4ebdf06ae5d3392aae4f19b6b5a308fcaae75d6e36fd040da62469e9459980d453d8e7274e3ffbc7c462042de9ad45263834
   languageName: node
   linkType: hard
 
@@ -14176,6 +14248,7 @@ __metadata:
     koa-sslify: "npm:5.0.1"
     lib0: "npm:^0.2.119"
     lint-staged: "npm:^16.4.0"
+    lucide-react: "npm:^1.71.0"
     mailparser: "npm:^3.9.47"
     mammoth: "npm:^1.13.0"
     markdown-it: "npm:^14.3.3"
@@ -14185,6 +14258,7 @@ __metadata:
     mobx: "npm:^6.16.1"
     mobx-react: "npm:^9.2.2"
     mobx-utils: "npm:^6.1.1"
+    motion: "npm:^14.12.0"
     msw: "npm:^2.15.0"
     natural-sort: "npm:^1.0.0"
     node-fetch: "npm:2.7.0"

@@ -52,7 +52,7 @@ import { collectionIndexing } from "@server/utils/indexing";
 import { QueryHelper } from "@server/storage/QueryHelper";
 import pagination from "../middlewares/pagination";
 import * as T from "./schema";
-import { InvalidRequestError } from "@server/errors";
+import { InvalidRequestError, ValidationError } from "@server/errors";
 
 const router = new Router();
 
@@ -247,6 +247,13 @@ router.post(
       Group.findByPk(groupId, { transaction }),
     ]);
     authorize(user, "manageUsers", collection);
+    if (
+      collection.managedBy &&
+      permission !== undefined &&
+      permission !== CollectionPermission.ReadWrite
+    ) {
+      throw ValidationError("Managed collections only accept write grants.");
+    }
     authorize(user, "read", group);
 
     let membership = await GroupMembership.findOneForUpdate(
@@ -403,7 +410,17 @@ router.post(
       User.findByPk(userId, { transaction }),
     ]);
     authorize(actor, "manageUsers", collection);
+    if (
+      collection.managedBy &&
+      permission !== undefined &&
+      permission !== CollectionPermission.ReadWrite
+    ) {
+      throw ValidationError("Managed collections only accept write grants.");
+    }
     authorize(actor, "read", user);
+    if (user.agent) {
+      throw ValidationError("Agents do not receive membership grants.");
+    }
 
     let membership = await UserMembership.findOneForUpdate(
       { collectionId: id, userId },
@@ -420,7 +437,11 @@ router.post(
         {
           collectionId: id,
           userId,
-          permission: permission || user.defaultCollectionPermission,
+          permission:
+            permission ||
+            (collection.managedBy
+              ? CollectionPermission.ReadWrite
+              : user.defaultCollectionPermission),
           createdById: actor.id,
         },
         ctx.context
@@ -633,6 +654,16 @@ router.post(
       collection
     );
 
+    if (
+      collection.managedBy &&
+      ((permission !== undefined && permission !== CollectionPermission.Read) ||
+        sharing === true)
+    ) {
+      throw ValidationError(
+        "The Altai collection is read-only by default and cannot be publicly shared."
+      );
+    }
+
     if (deprecatedReason !== undefined) {
       authorize(user, "updateDeprecatedReason", collection);
       await collection.updateDeprecatedReason(ctx, deprecatedReason);
@@ -772,7 +803,7 @@ router.post(
     // are not a member of, so they must be able to see them listed.
     if (!user.isAdmin || !(includeListOnly || includeArchived)) {
       where[Op.and].push({ id: collectionIds });
-    } else {
+    } else if (!user.agent) {
       where[Op.and].push({
         ownerId: { [Op.or]: [{ [Op.is]: null }, { [Op.eq]: user.id }] },
       });

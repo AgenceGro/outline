@@ -22,6 +22,11 @@ export class NotFoundError extends Error {
   name = "NotFoundError";
 }
 
+/** Error thrown when a write conflicts with a newer version on the server. */
+export class ConflictError extends Error {
+  name = "ConflictError";
+}
+
 /** Error thrown when the request requires payment or an upgraded plan. */
 export class PaymentRequiredError extends Error {
   name = "PaymentRequiredError";

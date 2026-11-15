@@ -1,15 +1,13 @@
 import Router from "@koa/router";
-import { UserRole } from "@shared/types";
-import teamCreator from "@server/commands/teamCreator";
 import teamUpdater from "@server/commands/teamUpdater";
 import ConfirmTeamDeleteEmail from "@server/emails/templates/ConfirmTeamDeleteEmail";
 import env from "@server/env";
-import { ValidationError } from "@server/errors";
+import { AuthorizationError, ValidationError } from "@server/errors";
 import auth from "@server/middlewares/authentication";
 import { rateLimiter } from "@server/middlewares/rateLimiter";
 import { transaction } from "@server/middlewares/transaction";
 import validate from "@server/middlewares/validate";
-import { Team, TeamDomain, User } from "@server/models";
+import { Team, TeamDomain } from "@server/models";
 import { authorize } from "@server/policies";
 import { presentTeam, presentPolicies } from "@server/presenters";
 import type { APIContext } from "@server/types";
@@ -118,51 +116,8 @@ router.post(
   "teams.create",
   rateLimiter(RateLimiterStrategy.FivePerHour),
   auth(),
-  validate(T.TeamsCreateSchema),
-  transaction(),
-  async (ctx: APIContext<T.TeamsCreateSchemaReq>) => {
-    const { transaction } = ctx.state;
-    const { user } = ctx.state.auth;
-    const { name } = ctx.input.body;
-
-    const existingTeam = await Team.scope(
-      "withAuthenticationProviders"
-    ).findByPk(user.teamId, {
-      rejectOnEmpty: true,
-      transaction,
-    });
-
-    authorize(user, "createTeam", existingTeam);
-
-    const authenticationProviders = existingTeam.authenticationProviders.map(
-      (provider) => ({
-        name: provider.name,
-        providerId: provider.providerId,
-      })
-    );
-
-    const team = await teamCreator(ctx, {
-      name,
-      subdomain: name,
-      authenticationProviders,
-    });
-
-    const newUser = await User.createWithCtx(ctx, {
-      teamId: team.id,
-      name: user.name,
-      email: user.email,
-      role: UserRole.Admin,
-    });
-
-    ctx.body = {
-      success: true,
-      data: {
-        team: presentTeam(team),
-        transferUrl: `${
-          team.url
-        }/auth/redirect?token=${newUser?.getTransferToken()}`,
-      },
-    };
+  () => {
+    throw AuthorizationError("This Outline instance already exists.");
   }
 );
 

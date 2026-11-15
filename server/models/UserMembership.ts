@@ -157,6 +157,7 @@ class UserMembership extends IdModel<
       userId: string;
       collectionId?: string | null;
       documentId?: string | null;
+      directOnly?: boolean;
     },
     options: FindOptions<UserMembership> & { transaction: Transaction }
   ) {
@@ -170,7 +171,13 @@ class UserMembership extends IdModel<
 
     return this.findOne({
       ...options,
-      where: collectionId ? { userId, collectionId } : { userId, documentId },
+      where: collectionId
+        ? { userId, collectionId }
+        : {
+            userId,
+            documentId,
+            ...(where.directOnly ? { sourceId: null } : {}),
+          },
       lock: options.transaction.LOCK.NO_KEY_UPDATE,
     });
   }
@@ -222,6 +229,7 @@ class UserMembership extends IdModel<
     options?: FindOptions<UserMembership>
   ): Promise<UserMembership[]> {
     const memberships = await this.findAll({
+      ...options,
       where: {
         documentId,
         ...(userId ? { userId } : {}),

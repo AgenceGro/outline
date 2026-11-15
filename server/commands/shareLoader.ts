@@ -84,6 +84,7 @@ export async function loadPublicShare({
   const associatedCollection = share.collection ?? share.document?.collection;
 
   if (
+    associatedCollection?.managedBy ||
     !share.team.sharing ||
     (!isDraftWithoutCollection && !associatedCollection?.sharing)
   ) {
@@ -120,7 +121,10 @@ export async function loadPublicShare({
       isDocumentAccessible = allIdsInSharedTree.includes(document.id);
     }
 
-    if (!isDocumentAccessible) {
+    if (
+      !isDocumentAccessible ||
+      document.collectionId !== associatedCollection?.id
+    ) {
       throw AuthorizationError();
     }
   } else {

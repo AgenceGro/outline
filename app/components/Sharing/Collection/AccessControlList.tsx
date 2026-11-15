@@ -12,7 +12,9 @@ import { Avatar, GroupAvatar, AvatarSize } from "~/components/Avatar";
 import InputMemberPermissionSelect from "~/components/InputMemberPermissionSelect";
 import { InputSelectPermission } from "~/components/InputSelectPermission";
 import Scrollable from "~/components/Scrollable";
+import Text from "~/components/Text";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
+import useCurrentUser from "~/hooks/useCurrentUser";
 import useMaxHeight from "~/hooks/useMaxHeight";
 import usePolicy from "~/hooks/usePolicy";
 import useStores from "~/hooks/useStores";
@@ -20,7 +22,9 @@ import type { Permission } from "~/types";
 import { EmptySelectValue } from "~/types";
 import { Separator, GroupMembersPopover } from "../components";
 import { ListItem } from "../components/ListItem";
+import { ManagedNotice, ManagedReaders } from "../components/ManagedNotice";
 import { Placeholder } from "../components/Placeholder";
+import { canGrantAccess, managedPermissions } from "../managedAccess";
 import { PublicAccess } from "./PublicAccess";
 import Flex from "@shared/components/Flex";
 import ButtonLink from "~/components/ButtonLink";
@@ -45,14 +49,23 @@ export const AccessControlList = observer(
   ({ collection, share, invitedInSession, visible, loading }: Props) => {
     const { memberships, groupMemberships } = useStores();
     const team = useCurrentTeam();
+    const user = useCurrentUser();
     const can = usePolicy(collection);
     const { t } = useTranslation();
     const theme = useTheme();
     const collectionId = collection.id;
+    const managed = collection.isManaged;
+    const canGrant = canGrantAccess({
+      managed,
+      canManageUsers: can.manageUsers,
+      isAdmin: user.isAdmin,
+    });
 
     const groupMembershipsInCollection =
       groupMemberships.inCollection(collectionId);
-    const membershipsInCollection = memberships.inCollection(collectionId);
+    const membershipsInCollection = memberships
+      .inCollection(collectionId)
+      .filter((membership) => !membership.user?.isAgent);
     const hasMemberships =
       groupMembershipsInCollection.length > 0 ||
       membershipsInCollection.length > 0;
@@ -95,6 +108,9 @@ export const AccessControlList = observer(
       [t]
     );
 
+    const permissionsFor = (current?: Permission["value"] | null) =>
+      managed ? managedPermissions(permissions, current) : permissions;
+
     return (
       <Wrapper>
         <ScrollableContainer
@@ -105,33 +121,46 @@ export const AccessControlList = observer(
           }}
         >
           <>
-            <ListItem
-              image={
-                <Squircle color={theme.accent} size={AvatarSize.Medium}>
-                  <UserIcon color={theme.accentText} size={16} />
-                </Squircle>
-              }
-              title={t("All members")}
-              subtitle={t("Everyone in the workspace")}
-              actions={
-                <div style={{ marginRight: -8 }}>
-                  <InputSelectPermission
-                    onChange={(
-                      value: CollectionPermission | typeof EmptySelectValue
-                    ) => {
-                      void collection.save({
-                        permission: value === EmptySelectValue ? null : value,
-                      });
-                    }}
-                    disabled={!can.manageUsers}
-                    value={collection?.permission}
-                    labelHidden
-                    nude
-                    shrink
-                  />
-                </div>
-              }
-            />
+            {managed ? (
+              <>
+                <ManagedNotice />
+                <ManagedReaders
+                  actions={
+                    <Text type="secondary" size="small">
+                      {t("Can view")}
+                    </Text>
+                  }
+                />
+              </>
+            ) : (
+              <ListItem
+                image={
+                  <Squircle color={theme.accent} size={AvatarSize.Medium}>
+                    <UserIcon color={theme.accentText} size={16} />
+                  </Squircle>
+                }
+                title={t("All members")}
+                subtitle={t("Everyone in the workspace")}
+                actions={
+                  <div style={{ marginRight: -8 }}>
+                    <InputSelectPermission
+                      onChange={(
+                        value: CollectionPermission | typeof EmptySelectValue
+                      ) => {
+                        void collection.save({
+                          permission: value === EmptySelectValue ? null : value,
+                        });
+                      }}
+                      disabled={!can.manageUsers}
+                      value={collection?.permission}
+                      labelHidden
+                      nude
+                      shrink
+                    />
+                  </div>
+                }
+              />
+            )}
             {showLoading ? (
               <Placeholder />
             ) : (
@@ -166,7 +195,7 @@ export const AccessControlList = observer(
                       actions={
                         <div style={{ marginRight: -8 }}>
                           <InputMemberPermissionSelect
-                            permissions={permissions}
+                            permissions={permissionsFor(membership.permission)}
                             onChange={async (
                               permission:
                                 | CollectionPermission
@@ -191,7 +220,7 @@ export const AccessControlList = observer(
                               }
                               return true;
                             }}
-                            disabled={!can.manageUsers}
+                            disabled={!canGrant}
                             value={membership.permission}
                           />
                         </div>
@@ -220,7 +249,7 @@ export const AccessControlList = observer(
                       actions={
                         <div style={{ marginRight: -8 }}>
                           <InputMemberPermissionSelect
-                            permissions={permissions}
+                            permissions={permissionsFor(membership.permission)}
                             onChange={async (
                               permission:
                                 | CollectionPermission
@@ -245,7 +274,7 @@ export const AccessControlList = observer(
                               }
                               return true;
                             }}
-                            disabled={!can.manageUsers}
+                            disabled={!canGrant}
                             value={membership.permission}
                           />
                         </div>
@@ -256,16 +285,20 @@ export const AccessControlList = observer(
             )}
           </>
         </ScrollableContainer>
-        {team.sharing && can.share && collection.sharing && visible && (
-          <Sticky>
-            {collection.members.length ? <Separator /> : null}
-            <PublicAccess
-              ref={publicAccessRef}
-              collection={collection}
-              share={share}
-            />
-          </Sticky>
-        )}
+        {!managed &&
+          team.sharing &&
+          can.share &&
+          collection.sharing &&
+          visible && (
+            <Sticky>
+              {collection.members.length ? <Separator /> : null}
+              <PublicAccess
+                ref={publicAccessRef}
+                collection={collection}
+                share={share}
+              />
+            </Sticky>
+          )}
       </Wrapper>
     );
   }

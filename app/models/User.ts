@@ -23,6 +23,9 @@ import Field from "./decorators/Field";
 import Relation from "./decorators/Relation";
 import type { Searchable } from "./interfaces/Searchable";
 
+/** The agents that can act in this instance through a user account. */
+export type UserAgent = "altai";
+
 class User extends ParanoidModel implements Searchable {
   static modelName = "User";
 
@@ -89,6 +92,14 @@ class User extends ParanoidModel implements Searchable {
   @observable
   isSuspended: boolean;
 
+  /**
+   * The agent that acts through this account, or null for a person. Agents
+   * keep their attribution in history and mentions of their work, but are
+   * not offered in people pickers, granted access, or managed like people.
+   */
+  @observable
+  agent: UserAgent | null = null;
+
   @observable
   invitedById: string | undefined = undefined;
 
@@ -103,7 +114,7 @@ class User extends ParanoidModel implements Searchable {
 
   @computed
   get searchSuppressed(): boolean {
-    return this.isDeleted;
+    return this.isDeleted || this.isAgent;
   }
 
   @computed
@@ -156,6 +167,13 @@ class User extends ParanoidModel implements Searchable {
    */
   get isGuest(): boolean {
     return this.role === UserRole.Guest;
+  }
+
+  /**
+   * Whether the account is an agent rather than a person.
+   */
+  get isAgent(): boolean {
+    return this.agent !== null && this.agent !== undefined;
   }
 
   /**

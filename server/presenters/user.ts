@@ -16,6 +16,7 @@ type Options = {
 type UserPresentation = {
   id: string;
   name: string;
+  agent: User["agent"];
   avatarUrl: string | null | undefined;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +40,7 @@ export default function presentUser(
   const userData: UserPresentation = {
     id: user.id,
     name: user.name,
+    agent: user.agent ?? null,
     avatarUrl: user.avatarUrl,
     color: user.color,
     role: user.role,

@@ -13,10 +13,13 @@ import Time from "~/components/Time";
 import type { Permission } from "~/types";
 import { EmptySelectValue } from "~/types";
 import { ListItem } from "../components/ListItem";
+import { managedPermissions } from "../managedAccess";
 
 type Props = {
   user: User;
   membership?: UserMembership | undefined;
+  /** Whether Altai manages the document, which limits grants to edit access. */
+  managed?: boolean;
   onAdd?: () => void;
   onRemove?: () => void;
   onLeave?: () => void;
@@ -26,6 +29,7 @@ type Props = {
 const DocumentMemberListItem = ({
   user,
   membership,
+  managed,
   onRemove,
   onLeave,
   onUpdate,
@@ -46,7 +50,7 @@ const DocumentMemberListItem = ({
   // Access inherited from a parent document cannot be removed here.
   const canRemove = !membership?.sourceId;
 
-  const permissions: Permission[] = [
+  const allPermissions: Permission[] = [
     {
       label: t("View only"),
       value: DocumentPermission.Read,
@@ -69,6 +73,9 @@ const DocumentMemberListItem = ({
         ] satisfies Permission[])
       : []),
   ];
+  const permissions = managed
+    ? managedPermissions(allPermissions, membership?.permission)
+    : allPermissions;
 
   const currentPermission = permissions.find(
     (p) => p.value === membership?.permission

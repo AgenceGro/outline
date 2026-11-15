@@ -40,6 +40,7 @@ import { decodeURIComponentSafe } from "~/utils/urls";
 import MultiplayerEditor from "./AsyncMultiplayerEditor";
 import DocumentMeta from "./DocumentMeta";
 import DocumentTitle from "./DocumentTitle";
+import { DocumentProperties } from "./Properties";
 import { first } from "es-toolkit/compat";
 import useShare from "@shared/hooks/useShare";
 import CodeWordBreak from "@shared/editor/extensions/CodeWordBreak";
@@ -245,17 +246,23 @@ function DocumentEditor(props: Props) {
           </SharedMeta>
         ) : null
       ) : !rest.template ? (
-        <DocumentMeta
-          document={document as Document}
-          to={{
-            pathname:
-              match.path === matchDocumentHistory
-                ? documentPath(document as Document)
-                : documentHistoryPath(document as Document),
-            state: { sidebarContext },
-          }}
-          rtl={direction === "rtl"}
-        />
+        <>
+          <DocumentMeta
+            document={document as Document}
+            to={{
+              pathname:
+                match.path === matchDocumentHistory
+                  ? documentPath(document as Document)
+                  : documentHistoryPath(document as Document),
+              state: { sidebarContext },
+            }}
+            rtl={direction === "rtl"}
+          />
+          {document instanceof Document &&
+            match.path !== matchDocumentHistory && (
+              <DocumentProperties document={document} readOnly={readOnly} />
+            )}
+        </>
       ) : null}
       {/* The editor core loads lazily and can suspend after the title and
           meta above have mounted. A nested boundary prevents that suspension

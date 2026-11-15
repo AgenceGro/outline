@@ -319,20 +319,6 @@ export default class AuthStore extends Store<Team> {
     });
   };
 
-  @action
-  createTeam = async (params: { name: string }) => {
-    this.isSaving = true;
-
-    try {
-      const res = await client.post(`/teams.create`, params);
-      invariant(res?.success, "Unable to create team");
-
-      window.location.href = res.data.transferUrl;
-    } finally {
-      this.isSaving = false;
-    }
-  };
-
   /**
    * Logs the user out and optionally revokes the authentication token.
    *

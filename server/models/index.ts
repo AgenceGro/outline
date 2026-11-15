@@ -80,3 +80,11 @@ export { default as Emoji } from "./Emoji";
 export { default as UserPasskey } from "./UserPasskey";
 
 export { default as AccessRequest } from "./AccessRequest";
+
+export { PropertyInstallation } from "./PropertyInstallation";
+
+export { PropertyDefinition } from "./PropertyDefinition";
+
+export { DocumentPropertyValue } from "./DocumentPropertyValue";
+
+export { PropertyAuditEvent } from "./PropertyAuditEvent";

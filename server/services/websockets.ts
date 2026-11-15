@@ -166,6 +166,12 @@ export default function init(
         Tracing.setResource(`Processor.WebsocketsProcessor`);
 
         websockets.perform(event, io).catch((error) => {
+          if (
+            event.name === "documentProperties.invalidate" ||
+            event.name === "propertyDefinitions.invalidate"
+          ) {
+            Metrics.increment("properties.invalidation_failed");
+          }
           Logger.error("Error processing websocket event", error, {
             event,
           });

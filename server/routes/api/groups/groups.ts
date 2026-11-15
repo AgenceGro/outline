@@ -477,6 +477,9 @@ router.post(
 
     const user = await User.findByPk(userId, { transaction });
     authorize(actor, "read", user);
+    if (user.agent) {
+      throw ValidationError("Agents do not receive membership grants.");
+    }
 
     // Load group with group users for authorization
     const group = await Group.findByPk(id, {

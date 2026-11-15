@@ -64,6 +64,7 @@ export default async function presentCollection(
     res.commenting = collection.commenting;
     res.templateManagement = collection.templateManagement;
     res.permission = collection.permission;
+    res.managedBy = collection.managedBy ?? null;
     res.ownerId = collection.ownerId;
     res.deletedAt = collection.deletedAt;
     res.archivedAt = collection.archivedAt;

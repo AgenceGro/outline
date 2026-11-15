@@ -172,6 +172,9 @@ async function expandDocumentIdLeaves(
  * @returns an array of OR-able Sequelize conditions.
  */
 async function draftVisibilityClauses(user: User): Promise<WhereOptions[]> {
+  if (user.agent) {
+    return [{ teamId: user.teamId }];
+  }
   return [
     { createdById: user.id },
     { id: await Document.membershipDocumentIds(user.id) },
@@ -306,7 +309,7 @@ router.post(
       where[Op.and].push(buildWhere<Document>(mapped));
     }
 
-    if (!backlinkDocumentId && !collectionScopeDropped) {
+    if (!user.agent && !backlinkDocumentId && !collectionScopeDropped) {
       const collectionIds = await user.collectionIds();
       where[Op.and].push({
         [Op.or]: [
@@ -408,7 +411,9 @@ router.post(
         : [[sort, direction]];
 
     const includeDrafts =
-      !!statusFilter?.includes(StatusFilter.Draft) || filterIncludesDrafts;
+      (!statusFilter && !!user.agent) ||
+      !!statusFilter?.includes(StatusFilter.Draft) ||
+      filterIncludesDrafts;
 
     // The withDrafts scope drops the defaultScope filters, so re-apply the
     // ones we still want — templates and trial-import documents should never
@@ -545,7 +550,7 @@ router.post(
               },
             },
             {
-              createdById: user.id,
+              ...(user.agent ? {} : { createdById: user.id }),
               collectionId: {
                 [Op.is]: null,
               },
@@ -658,7 +663,7 @@ router.post(
       : await user.collectionIds();
     const where: WhereOptions = {
       teamId: user.teamId,
-      createdById: user.id,
+      ...(user.agent ? {} : { createdById: user.id }),
       collectionId: {
         [Op.or]: [{ [Op.in]: collectionIds }, { [Op.is]: null }],
       },
@@ -830,6 +835,7 @@ router.post(
     authorize(actor, "read", document);
 
     let where: WhereOptions<User> = {
+      agent: null,
       teamId: document.teamId,
       suspendedAt: {
         [Op.is]: null,
@@ -852,13 +858,15 @@ router.post(
             [Op.in]: uniq([...memberIds, ...collectionMemberIds]),
           },
         },
-        collection?.permission
-          ? {
-              role: {
-                [Op.ne]: UserRole.Guest,
-              },
-            }
-          : {},
+        collection?.managedBy && !document.isDraft
+          ? { teamId: document.teamId }
+          : collection?.permission
+            ? {
+                role: {
+                  [Op.ne]: UserRole.Guest,
+                },
+              }
+            : {},
       ],
     };
 
@@ -1921,7 +1929,17 @@ router.post(
     ]);
 
     authorize(actor, "manageUsers", document);
+    if (
+      document.collection?.managedBy &&
+      permission !== undefined &&
+      permission !== DocumentPermission.ReadWrite
+    ) {
+      throw ValidationError("Managed documents only accept write grants.");
+    }
     authorize(actor, "read", user);
+    if (user.agent) {
+      throw ValidationError("Agents do not receive membership grants.");
+    }
 
     const UserMemberships = await UserMembership.findAll({
       where: {
@@ -1945,7 +1963,7 @@ router.post(
     );
 
     let membership = await UserMembership.findOneForUpdate(
-      { documentId: id, userId },
+      { documentId: id, userId, directOnly: !!document.collection?.managedBy },
       { transaction }
     );
 
@@ -1962,7 +1980,11 @@ router.post(
           documentId: id,
           userId,
           index,
-          permission: permission || user.defaultDocumentPermission,
+          permission:
+            permission ||
+            (document.collection?.managedBy
+              ? DocumentPermission.ReadWrite
+              : user.defaultDocumentPermission),
           createdById: actor.id,
         },
         ctx.context
@@ -2001,7 +2023,7 @@ router.post(
       }),
     ]);
 
-    if (actor.id !== userId) {
+    if (document.collection?.managedBy || actor.id !== userId) {
       authorize(actor, "manageUsers", document);
       authorize(actor, "read", user);
     }
@@ -2010,6 +2032,7 @@ router.post(
       where: {
         documentId: id,
         userId,
+        ...(document.collection?.managedBy ? { sourceId: null } : {}),
       },
       transaction,
       lock: transaction.LOCK.UPDATE,
@@ -2053,10 +2076,17 @@ router.post(
       }),
     ]);
     authorize(user, "manageUsers", document);
+    if (
+      document.collection?.managedBy &&
+      permission !== undefined &&
+      permission !== DocumentPermission.ReadWrite
+    ) {
+      throw ValidationError("Managed documents only accept write grants.");
+    }
     authorize(user, "read", group);
 
     let membership = await GroupMembership.findOneForUpdate(
-      { documentId: id, groupId },
+      { documentId: id, groupId, directOnly: !!document.collection?.managedBy },
       { transaction }
     );
 
@@ -2116,6 +2146,7 @@ router.post(
       where: {
         documentId: id,
         groupId,
+        ...(document.collection?.managedBy ? { sourceId: null } : {}),
       },
       transaction,
       lock: transaction.LOCK.NO_KEY_UPDATE,
@@ -2277,7 +2308,9 @@ router.post(
             },
           },
           {
-            createdById: user.id,
+            ...(user.agent
+              ? { teamId: user.teamId }
+              : { createdById: user.id }),
             collectionId: {
               [Op.is]: null,
             },

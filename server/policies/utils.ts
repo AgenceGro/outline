@@ -99,7 +99,7 @@ export function isCollectionOwner(
   return (
     !!collection?.ownerId &&
     isTeamModel(actor, collection) &&
-    collection.ownerId === actor.id
+    (actor.agent === "altai" || collection.ownerId === actor.id)
   );
 }
 
@@ -116,6 +116,7 @@ export function isCollectionWritable(
   collection: Collection | null | undefined
 ): boolean {
   return (
+    actor.agent === "altai" ||
     !collection?.ownerId ||
     !!actor.team?.getPreference(TeamPreference.PersonalDocs)
   );

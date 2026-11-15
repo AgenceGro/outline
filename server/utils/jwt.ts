@@ -70,7 +70,7 @@ export async function getUserForJWT(
       },
     ],
   });
-  if (!user) {
+  if (!user || user.agent) {
     throw AuthenticationError("Invalid token");
   }
 

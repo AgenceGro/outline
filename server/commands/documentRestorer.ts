@@ -1,5 +1,9 @@
 import { traceFunction } from "@server/logging/tracing";
-import { ParamRequiredError, ValidationError } from "@server/errors";
+import {
+  AuthorizationError,
+  ParamRequiredError,
+  ValidationError,
+} from "@server/errors";
 import { Collection, Revision } from "@server/models";
 import type { Document } from "@server/models";
 import { authorize } from "@server/policies";
@@ -78,6 +82,13 @@ async function documentRestorer(
     throw ValidationError(
       "Unable to restore, the collection may have been deleted or archived"
     );
+  }
+  if (
+    sourceCollectionId !== destCollection.id &&
+    destCollection.managedBy &&
+    !user.isAdmin
+  ) {
+    throw AuthorizationError();
   }
   authorize(user, "updateDocument", destCollection);
 

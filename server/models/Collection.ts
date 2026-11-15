@@ -606,6 +606,10 @@ class Collection extends ParanoidModel<
   @BelongsTo(() => Team, "teamId")
   team: Team;
 
+  /** Provider managing this collection, independent of personal ownership. */
+  @Column(DataType.TEXT)
+  managedBy: "altai" | null;
+
   @ForeignKey(() => Team)
   @Column(DataType.UUID)
   teamId: string;

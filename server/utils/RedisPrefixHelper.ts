@@ -66,7 +66,7 @@ export class RedisPrefixHelper {
    * @returns the cache key string.
    */
   public static getUserCollectionIdsKey(userId: string) {
-    return `uc:${userId}`;
+    return `uc:2:${userId}`;
   }
 
   /**

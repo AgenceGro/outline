@@ -37,7 +37,9 @@ allow(User, "read", Document, (actor, document) =>
         DocumentPermission.Admin,
       ]),
       and(!!document?.isDraft, actor.id === document?.createdById),
-      can(actor, "readDocument", document?.collection)
+      !!actor.agent ||
+        ((!document?.isDraft || !document.collection?.managedBy) &&
+          can(actor, "readDocument", document?.collection))
     )
   )
 );
@@ -66,6 +68,7 @@ allow(User, "comment", Document, (actor, document) => {
     isTeamMutable(actor),
     can(actor, "read", document),
     isCommentingEnabled(actor),
+    !document?.collection?.managedBy || !!can(actor, "update", document),
     or(!actor.isGuest, commenting === CommentingAccess.Everyone),
     or(!document?.collection, document?.collection?.commenting !== false)
   );
@@ -98,6 +101,7 @@ allow(User, "update", Document, (actor, document) =>
     can(actor, "read", document),
     isCollectionWritable(actor, document?.collection),
     or(
+      !!actor.agent,
       includesMembership(document, [
         DocumentPermission.ReadWrite,
         DocumentPermission.Admin,
@@ -118,17 +122,22 @@ allow(User, "publish", Document, (actor, document) =>
   )
 );
 
-allow(User, "manageUsers", Document, (actor, document) =>
-  and(
-    isTeamMutable(actor),
-    can(actor, "read", document),
-    or(
-      includesMembership(document, [DocumentPermission.Admin]),
-      and(!document?.collection?.isPersonal, isTeamAdmin(actor, document)),
-      can(actor, "update", document?.collection),
-      !!document?.isDraft && actor.id === document?.createdById
+allow(
+  User,
+  "manageUsers",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    and(
+      isTeamMutable(actor),
+      can(actor, "read", document),
+      or(
+        includesMembership(document, [DocumentPermission.Admin]),
+        and(!document?.collection?.isPersonal, isTeamAdmin(actor, document)),
+        can(actor, "update", document?.collection),
+        !!document?.isDraft && actor.id === document?.createdById
+      )
     )
-  )
 );
 
 // Note that read access to the source document is sufficient – the destination
@@ -148,22 +157,27 @@ allow(User, "duplicate", Document, (actor, document) =>
   )
 );
 
-allow(User, "move", Document, (actor, document) =>
-  or(
-    and(
-      can(actor, "update", document),
-      or(
-        includesMembership(document, [
-          DocumentPermission.ReadWrite,
-          DocumentPermission.Admin,
-        ]),
-        can(actor, "updateDocument", document?.collection),
-        and(!!document?.isDraft && actor.id === document?.createdById),
-        and(!!document?.isDraft && !document?.collection)
-      )
-    ),
-    and(!!document?.isActive, isPersonalOwner(actor, document))
-  )
+allow(
+  User,
+  "move",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    or(
+      and(
+        can(actor, "update", document),
+        or(
+          includesMembership(document, [
+            DocumentPermission.ReadWrite,
+            DocumentPermission.Admin,
+          ]),
+          can(actor, "updateDocument", document?.collection),
+          and(!!document?.isDraft && actor.id === document?.createdById),
+          and(!!document?.isDraft && !document?.collection)
+        )
+      ),
+      and(!!document?.isActive, isPersonalOwner(actor, document))
+    )
 );
 
 allow(User, "createChildDocument", Document, (actor, document) =>
@@ -195,89 +209,115 @@ allow(User, "pinToHome", Document, (actor, document) =>
   )
 );
 
-allow(User, "delete", Document, (actor, document) =>
-  and(
-    !document?.isDeleted,
-    isTeamModel(actor, document),
-    isTeamMutable(actor),
-    or(
-      can(actor, "unarchive", document),
-      can(actor, "update", document),
-      isPersonalOwner(actor, document),
-      and(!document?.collection, actor.id === document?.createdById)
-    )
-  )
-);
-
-allow(User, "restore", Document, (actor, document) =>
-  and(
-    !actor.isGuest,
-    !actor.isViewer,
-    !!document?.isDeleted,
-    isTeamModel(actor, document),
-    or(
-      includesMembership(document, [
-        DocumentPermission.ReadWrite,
-        DocumentPermission.Admin,
-      ]),
-      can(actor, "updateDocument", document?.collection),
-      and(!!document?.isDraft && actor.id === document?.createdById)
-    )
-  )
-);
-
-allow(User, "permanentDelete", Document, (actor, document) =>
-  and(
-    !actor.isGuest,
-    !!document?.isDeleted,
-    isTeamModel(actor, document),
-    isTeamAdmin(actor, document),
-    or(
-      !document?.collection?.isPersonal,
-      isCollectionOwner(actor, document?.collection)
-    )
-  )
-);
-
-allow(User, "archive", Document, (actor, document) =>
-  and(
-    !document?.isDraft,
-    !!document?.isActive,
-    or(
-      and(
+allow(
+  User,
+  "delete",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    and(
+      !document?.isDeleted,
+      isTeamModel(actor, document),
+      isTeamMutable(actor),
+      or(
+        can(actor, "unarchive", document),
         can(actor, "update", document),
-        or(
-          includesMembership(document, [DocumentPermission.Admin]),
-          and(
-            !document?.collection?.isPersonal,
-            isTeamAdmin(actor, document),
-            can(actor, "read", document)
-          ),
-          can(actor, "updateDocument", document?.collection)
-        )
-      ),
-      isPersonalOwner(actor, document)
+        isPersonalOwner(actor, document),
+        and(!document?.collection, actor.id === document?.createdById)
+      )
     )
-  )
 );
 
-allow(User, "unarchive", Document, (actor, document) =>
-  and(
-    !actor.isGuest,
-    !actor.isViewer,
-    !document?.isDraft,
-    !document?.isDeleted,
-    !!document?.archivedAt,
-    can(actor, "read", document),
-    or(
-      includesMembership(document, [
-        DocumentPermission.ReadWrite,
-        DocumentPermission.Admin,
-      ]),
-      can(actor, "updateDocument", document?.collection),
-      and(!!document?.isDraft && actor.id === document?.createdById)
+allow(
+  User,
+  "restore",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    and(
+      !actor.isGuest,
+      !actor.isViewer,
+      !!document?.isDeleted,
+      isTeamModel(actor, document),
+      or(
+        includesMembership(document, [
+          DocumentPermission.ReadWrite,
+          DocumentPermission.Admin,
+        ]),
+        can(actor, "updateDocument", document?.collection),
+        !!actor.agent ||
+          (!!document?.isDraft && actor.id === document?.createdById)
+      )
     )
-  )
+);
+
+allow(
+  User,
+  "permanentDelete",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    and(
+      !actor.isGuest,
+      !!document?.isDeleted,
+      isTeamModel(actor, document),
+      isTeamAdmin(actor, document),
+      or(
+        !document?.collection?.isPersonal,
+        isCollectionOwner(actor, document?.collection)
+      )
+    )
+);
+
+allow(
+  User,
+  "archive",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    and(
+      !document?.isDraft,
+      !!document?.isActive,
+      or(
+        and(
+          can(actor, "update", document),
+          or(
+            includesMembership(document, [DocumentPermission.Admin]),
+            and(
+              !document?.collection?.isPersonal,
+              isTeamAdmin(actor, document),
+              can(actor, "read", document)
+            ),
+            can(actor, "updateDocument", document?.collection)
+          )
+        ),
+        isPersonalOwner(actor, document)
+      )
+    )
+);
+
+allow(
+  User,
+  "unarchive",
+  Document,
+  (actor, document) =>
+    (!document?.collection?.managedBy || actor.isAdmin) &&
+    and(
+      !actor.isGuest,
+      !actor.isViewer,
+      !document?.isDraft,
+      !document?.isDeleted,
+      !!document?.archivedAt,
+      can(actor, "read", document),
+      or(
+        includesMembership(document, [
+          DocumentPermission.ReadWrite,
+          DocumentPermission.Admin,
+        ]),
+        can(actor, "updateDocument", document?.collection),
+        and(!!document?.isDraft && actor.id === document?.createdById)
+      )
+    )
 );
 
 allow(
@@ -297,6 +337,7 @@ allow(User, "updateDeprecatedReason", Document, (actor, document) =>
 allow(User, "unpublish", Document, (user, document) => {
   if (
     !document ||
+    (document.collection?.managedBy && !user.isAdmin) ||
     user.isGuest ||
     user.isViewer ||
     !document.isActive ||

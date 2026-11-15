@@ -8,7 +8,7 @@ import Spinner from "@shared/components/Spinner";
 import ButtonLarge from "~/components/ButtonLarge";
 import Input from "~/components/Input";
 import Text from "~/components/Text";
-import { DefaultHostname, navigateToHost, validateHost } from "../urls";
+import { navigateToHost, validateHost } from "../urls";
 
 type Status = "idle" | "checking" | "valid" | "invalid";
 
@@ -19,7 +19,7 @@ type Status = "idle" | "checking" | "valid" | "invalid";
  */
 export function SwitchHostDialog() {
   const { t } = useTranslation();
-  const [host, setHost] = useState(DefaultHostname);
+  const [host, setHost] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [validatedUrl, setValidatedUrl] = useState<string | null>(null);
 
@@ -86,12 +86,13 @@ export function SwitchHostDialog() {
   return (
     <form onSubmit={handleSubmit}>
       <Text as="p">
-        {t("Enter the address of an Outline workspace to connect")}
+        {t("Enter the address of the Outline instance to connect to.")}
       </Text>
       <Input
         autoFocus
         value={host}
         onChange={handleChange}
+        placeholder="docs.example.com"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"

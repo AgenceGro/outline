@@ -14,6 +14,7 @@ allow(User, "createApiKey", Team, (actor, team) =>
   and(
     isTeamModel(actor, team),
     isTeamMutable(actor),
+    !actor.agent,
     !actor.isGuest,
     !actor.isSuspended,
     actor.isAdmin ||
@@ -32,6 +33,7 @@ allow(User, "listApiKeys", Team, (actor, team) =>
 
 allow(User, ["read", "update", "delete"], ApiKey, (actor, apiKey) =>
   and(
+    !apiKey?.user?.agent,
     isTeamModel(actor, apiKey?.user),
     or(
       actor.isAdmin,

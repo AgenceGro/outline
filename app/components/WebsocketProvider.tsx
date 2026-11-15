@@ -3,7 +3,7 @@ import invariant from "invariant";
 import { find } from "es-toolkit/compat";
 import { action } from "mobx";
 import { observer } from "mobx-react";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Socket } from "socket.io-client";
 import { io } from "socket.io-client";
@@ -33,6 +33,10 @@ import type Team from "~/models/Team";
 import type User from "~/models/User";
 import type UserMembership from "~/models/UserMembership";
 import useStores from "~/hooks/useStores";
+import {
+  type PropertyRealtimeHandlers,
+  createPropertyRealtimeHandlers,
+} from "~/components/Properties/realtime";
 import type {
   PartialExcept,
   WebsocketCollectionUpdateIndexEvent,
@@ -913,6 +917,34 @@ function useImportHandlers() {
   };
 }
 
+/**
+ * Registers handlers that keep typed document properties current: each
+ * invalidation refetches what is loaded, and so does every authentication
+ * after the first, as events may have been missed while disconnected.
+ *
+ * @returns a function that registers the handlers on a socket.
+ */
+function useDocumentPropertyHandlers() {
+  const { documentProperties, propertyDefinitions } = useStores();
+  const handlers = useRef<PropertyRealtimeHandlers | null>(null);
+  handlers.current ??= createPropertyRealtimeHandlers(
+    { documentProperties, propertyDefinitions },
+    (err) => {
+      Logger.warn("Failed to refetch property definitions", {
+        error: toError(err),
+      });
+    }
+  );
+  const { authenticated, definitionsInvalidated, documentInvalidated } =
+    handlers.current;
+
+  return (socket: SocketWithAuthentication) => {
+    socket.on("authenticated", authenticated);
+    socket.on("propertyDefinitions.invalidate", definitionsInvalidated);
+    socket.on("documentProperties.invalidate", documentInvalidated);
+  };
+}
+
 function WebsocketProvider({ children }: React.PropsWithChildren<object>) {
   const [socket, setSocket] = useState<SocketWithAuthentication | null>(null);
 
@@ -929,6 +961,7 @@ function WebsocketProvider({ children }: React.PropsWithChildren<object>) {
   const registerShareHandlers = useShareHandlers();
   const registerStarHandlers = useStarHandlers();
   const registerImportHandlers = useImportHandlers();
+  const registerDocumentPropertyHandlers = useDocumentPropertyHandlers();
 
   useEffect(() => {
     let currentSocket: SocketWithAuthentication | null = null;
@@ -958,6 +991,7 @@ function WebsocketProvider({ children }: React.PropsWithChildren<object>) {
       registerShareHandlers(currentSocket);
       registerStarHandlers(currentSocket);
       registerImportHandlers(currentSocket);
+      registerDocumentPropertyHandlers(currentSocket);
 
       setSocket(currentSocket);
     }

@@ -19,11 +19,8 @@ function Message({ notice }: { notice: string }) {
     case "domain-required":
       return (
         <Trans>
-          Unable to sign in. Please navigate to your workspace’s custom URL,
-          then try to sign in again.
-          <hr />
-          If you were invited to a workspace, you will find a link to it in the
-          invite email.
+          Unable to sign in from this address. Open this Outline instance’s
+          sign-in page, then try again.
         </Trans>
       );
     case "gmail-account-creation":

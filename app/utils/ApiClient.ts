@@ -13,6 +13,7 @@ import {
   BadGatewayError,
   BadRequestError,
   ClientClosedRequestError,
+  ConflictError,
   NetworkError,
   NotFoundError,
   OfflineError,
@@ -369,6 +370,10 @@ class ApiClient {
 
     if (status === 404) {
       return new NotFoundError(message);
+    }
+
+    if (status === 409) {
+      return new ConflictError(message);
     }
 
     // A proxy on the client's network requires authentication.

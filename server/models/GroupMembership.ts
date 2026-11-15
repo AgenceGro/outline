@@ -150,6 +150,7 @@ class GroupMembership extends ParanoidModel<
       groupId: string;
       collectionId?: string | null;
       documentId?: string | null;
+      directOnly?: boolean;
     },
     options: FindOptions<GroupMembership> & { transaction: Transaction }
   ) {
@@ -163,7 +164,13 @@ class GroupMembership extends ParanoidModel<
 
     return this.findOne({
       ...options,
-      where: collectionId ? { groupId, collectionId } : { groupId, documentId },
+      where: collectionId
+        ? { groupId, collectionId }
+        : {
+            groupId,
+            documentId,
+            ...(where.directOnly ? { sourceId: null } : {}),
+          },
       lock: options.transaction.LOCK.NO_KEY_UPDATE,
     });
   }
@@ -215,6 +222,7 @@ class GroupMembership extends ParanoidModel<
     options?: FindOptions<GroupMembership>
   ): Promise<GroupMembership[]> {
     const memberships = await this.findAll({
+      ...options,
       where: {
         documentId,
         ...(groupId ? { groupId } : {}),

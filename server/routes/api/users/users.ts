@@ -61,6 +61,7 @@ router.post(
       [Op.and]: WhereOptions<User>[];
     } = {
       teamId: actor.teamId,
+      agent: null,
       [Op.and]: [],
     };
 

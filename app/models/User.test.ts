@@ -4,6 +4,30 @@ import stores from "~/stores";
 describe("User model", () => {
   const users = stores.users;
 
+  describe("isAgent", () => {
+    it("is false for a person and true for an agent", () => {
+      const person = new User({ id: "agent-1", name: "Ada" }, users);
+      const agent = new User(
+        { id: "agent-2", name: "Altai", agent: "altai" },
+        users
+      );
+
+      expect(person.isAgent).toBe(false);
+      expect(agent.isAgent).toBe(true);
+    });
+
+    it("suppresses agents from search, such as mention suggestions", () => {
+      const person = new User({ id: "agent-3", name: "Ada" }, users);
+      const agent = new User(
+        { id: "agent-4", name: "Altai", agent: "altai" },
+        users
+      );
+
+      expect(person.searchSuppressed).toBe(false);
+      expect(agent.searchSuppressed).toBe(true);
+    });
+  });
+
   describe("initial", () => {
     it("should return first character of name uppercased", () => {
       const user = new User(

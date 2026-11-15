@@ -3,11 +3,9 @@ import { Team, User } from "@server/models";
 import { allow } from "./cancan";
 import {
   and,
-  isCloudHosted,
   isTeamAdmin,
   isTeamModel,
   isTeamMutable,
-  or,
   teamHasEntitlement,
 } from "./utils";
 
@@ -31,26 +29,11 @@ allow(User, "share", Team, (actor, team) =>
   )
 );
 
-allow(User, "createTeam", Team, (actor, team) =>
-  and(
-    //
-    isCloudHosted(),
-    isTeamModel(actor, team),
-    !actor.isGuest,
-    !actor.isViewer,
-    or(actor.isAdmin, !!team?.memberTeamCreate)
-  )
-);
+allow(User, "createTeam", Team, () => false);
 
 allow(User, "update", Team, isTeamAdmin);
 
-allow(User, "delete", Team, (actor, team) =>
-  and(
-    //
-    isCloudHosted(),
-    isTeamAdmin(actor, team)
-  )
-);
+allow(User, "delete", Team, () => false);
 
 allow(User, "audit", Team, (actor, team) =>
   and(

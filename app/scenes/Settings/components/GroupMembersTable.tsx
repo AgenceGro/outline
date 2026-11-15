@@ -67,21 +67,25 @@ export const GroupMembersTable = observer(function GroupMembersTable({
   const can = usePolicy(group);
   const canManage = can.update && !group.isExternallyManaged;
 
+  // Agents are not managed like people, so their rows have no controls.
   const isRowSelectable = useCallback(
-    (user: User) => !!groupUsers.membership(group.id, user.id),
+    (user: User) => !user.isAgent && !!groupUsers.membership(group.id, user.id),
     [groupUsers, group.id]
   );
 
   const applyContextMenu = useCallback(
-    (user: User, rowElement: React.ReactNode) => (
-      <GroupMemberRowContextMenu
-        group={group}
-        user={user}
-        menuLabel={t("Group member options")}
-      >
-        {rowElement}
-      </GroupMemberRowContextMenu>
-    ),
+    (user: User, rowElement: React.ReactNode) =>
+      user.isAgent ? (
+        rowElement
+      ) : (
+        <GroupMemberRowContextMenu
+          group={group}
+          user={user}
+          menuLabel={t("Group member options")}
+        >
+          {rowElement}
+        </GroupMemberRowContextMenu>
+      ),
     [group, t]
   );
 
@@ -172,9 +176,10 @@ export const GroupMembersTable = observer(function GroupMembersTable({
           ? {
               type: "action",
               id: "action",
-              component: (user) => (
-                <GroupMemberMenu group={group} user={user} />
-              ),
+              component: (user) =>
+                user.isAgent ? null : (
+                  <GroupMemberMenu group={group} user={user} />
+                ),
               width: "50px",
             }
           : undefined,

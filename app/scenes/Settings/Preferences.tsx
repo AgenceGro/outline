@@ -11,9 +11,14 @@ import {
 } from "@shared/types";
 import { Theme } from "~/stores/UiStore";
 import Button from "~/components/Button";
+import { useToday } from "~/components/arc/lib/use-today";
 import Heading from "~/components/Heading";
 import type { Option } from "~/components/InputSelect";
 import { InputSelect } from "~/components/InputSelect";
+import {
+  type PropertyDateStyle,
+  formatPropertyDate,
+} from "~/components/Properties/dates";
 import Scene from "~/components/Scene";
 import Switch from "~/components/Switch";
 import Text from "~/components/Text";
@@ -54,6 +59,38 @@ function Preferences() {
         { type: "item", label: t("System"), value: Theme.System },
       ] satisfies Option[],
     [t]
+  );
+
+  // Each style is shown as today's date in the user's language.
+  const dateLocale = user.language?.replace("_", "-");
+  const today = useToday();
+  const propertyDateOptions: Option[] = React.useMemo(
+    () =>
+      (["long", "short"] satisfies PropertyDateStyle[]).map(
+        (style) =>
+          ({
+            type: "item",
+            label: today
+              ? formatPropertyDate(today, dateLocale, style)
+              : style === "long"
+                ? t("Long")
+                : t("Short"),
+            value: style,
+          }) satisfies Option
+      ),
+    [today, dateLocale, t]
+  );
+
+  const handlePropertyDateStyleChange = React.useCallback(
+    async (value: string) => {
+      user.setPreference(
+        UserPreference.PropertyDateStyle,
+        value === "short" ? "short" : "long"
+      );
+      await user.save();
+      toast.success(t("Preferences saved"));
+    },
+    [user, t]
   );
 
   const handleUseCursorPointerChange = React.useCallback(
@@ -208,6 +245,21 @@ function Preferences() {
             value={user.language}
             onChange={handleLanguageChange}
             label={t("Language")}
+            labelHidden
+          />
+        </SettingRow>
+        <SettingRow
+          name={UserPreference.PropertyDateStyle}
+          label={t("Property date format")}
+          description={t("Choose how dates in document properties are shown.")}
+        >
+          <InputSelect
+            id={UserPreference.PropertyDateStyle}
+            aria-label={t("Property date format")}
+            options={propertyDateOptions}
+            value={user.getPreference(UserPreference.PropertyDateStyle)}
+            onChange={handlePropertyDateStyleChange}
+            label={t("Property date format")}
             labelHidden
           />
         </SettingRow>

@@ -15,6 +15,7 @@ import { createAction } from "~/actions";
 import { UserSection } from "~/actions/sections";
 import useBoolean from "~/hooks/useBoolean";
 import useCurrentTeam from "~/hooks/useCurrentTeam";
+import useCurrentUser from "~/hooks/useCurrentUser";
 import useKeyDown from "~/hooks/useKeyDown";
 import usePolicy from "~/hooks/usePolicy";
 import usePrevious from "~/hooks/usePrevious";
@@ -27,6 +28,7 @@ import { CopyLinkButton } from "../components/CopyLinkButton";
 import { PermissionAction } from "../components/PermissionAction";
 import { SearchInput } from "../components/SearchInput";
 import { Suggestions } from "../components/Suggestions";
+import { canGrantAccess, managedPermissions } from "../managedAccess";
 import { AccessControlList } from "./AccessControlList";
 
 type Props = {
@@ -47,6 +49,7 @@ function SharePopover({
   loading: externalLoading,
 }: Props) {
   const team = useCurrentTeam();
+  const user = useCurrentUser();
   const { groupMemberships, users, groups, memberships, shares } = useStores();
   const { preload, loading: internalLoading } = useShareDataLoader({
     collection,
@@ -55,6 +58,12 @@ function SharePopover({
   const { t } = useTranslation();
   const can = usePolicy(collection);
   const teamCan = usePolicy(team);
+  const managed = collection.isManaged;
+  const canGrant = canGrantAccess({
+    managed,
+    canManageUsers: can.manageUsers,
+    isAdmin: user.isAdmin,
+  });
   const inviteRole = teamCan.addGuest ? UserRole.Guest : team.defaultUserRole;
   const [query, setQuery] = React.useState("");
   const [picker, showPicker, hidePicker] = useBoolean();
@@ -62,8 +71,14 @@ function SharePopover({
   const [pendingIds, setPendingIds] = React.useState<string[]>([]);
   const [invitedInSession, setInvitedInSession] = React.useState<string[]>([]);
   const [permission, setPermission] = React.useState<CollectionPermission>(
-    collection.permission ?? CollectionPermission.Read
+    managed
+      ? CollectionPermission.ReadWrite
+      : (collection.permission ?? CollectionPermission.Read)
   );
+  // Everyone can read managed content, so grants there are always edit access.
+  const invitePermission = managed
+    ? CollectionPermission.ReadWrite
+    : permission;
 
   const share = shares.getByCollectionId(collection.id);
   const prevPendingIds = usePrevious(pendingIds);
@@ -222,7 +237,7 @@ function SharePopover({
                 await memberships.create({
                   collectionId: collection.id,
                   userId: user.id,
-                  permission,
+                  permission: invitePermission,
                 });
                 return user;
               }
@@ -231,7 +246,7 @@ function SharePopover({
                 await groupMemberships.create({
                   collectionId: collection.id,
                   groupId: group.id,
-                  permission,
+                  permission: invitePermission,
                 });
                 return group;
               }
@@ -301,31 +316,30 @@ function SharePopover({
       hidePicker,
       memberships,
       pendingIds,
-      permission,
+      invitePermission,
       t,
       inviteRole,
       users,
     ]
   );
 
-  const permissions = React.useMemo(
-    () =>
-      [
-        {
-          label: t("View only"),
-          value: CollectionPermission.Read,
-        },
-        {
-          label: t("Can edit"),
-          value: CollectionPermission.ReadWrite,
-        },
-        {
-          label: t("Manage"),
-          value: CollectionPermission.Admin,
-        },
-      ] as Permission[],
-    [t]
-  );
+  const permissions = React.useMemo(() => {
+    const all = [
+      {
+        label: t("View only"),
+        value: CollectionPermission.Read,
+      },
+      {
+        label: t("Can edit"),
+        value: CollectionPermission.ReadWrite,
+      },
+      {
+        label: t("Manage"),
+        value: CollectionPermission.Admin,
+      },
+    ] as Permission[];
+    return managed ? managedPermissions(all) : all;
+  }, [managed, t]);
 
   if (!hasRendered) {
     return null;
@@ -354,7 +368,7 @@ function SharePopover({
     pendingIds.length ? (
       <PermissionAction
         key="invite"
-        permission={permission}
+        permission={invitePermission}
         permissions={permissions}
         action={inviteAction}
         onChange={(value: CollectionPermission) => setPermission(value)}
@@ -370,7 +384,7 @@ function SharePopover({
 
   return (
     <Wrapper ref={wrapperRef} tabIndex={-1}>
-      {can.manageUsers && (
+      {canGrant && (
         <SearchInput
           ref={searchInputRef}
           onChange={handleQuery}

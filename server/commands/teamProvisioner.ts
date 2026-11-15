@@ -9,10 +9,8 @@ import {
 import Logger from "@server/logging/Logger";
 import { traceFunction } from "@server/logging/tracing";
 import { Team, AuthenticationProvider } from "@server/models";
-import {
-  retryOnUniqueConstraintError,
-  sequelize,
-} from "@server/storage/database";
+import { sequelize } from "@server/storage/database";
+import { LockHelper } from "@server/storage/LockHelper";
 import type { APIContext } from "@server/types";
 
 type TeamProvisionerResult = {
@@ -131,26 +129,43 @@ async function teamProvisioner(
     throw InvalidAuthenticationError();
   }
 
-  // We cannot find an existing team, so we create a new one. Two concurrent
-  // signups can pick the same available subdomain, so retry on a conflict –
-  // the next attempt will see the committed team and choose another.
-  const team = await retryOnUniqueConstraintError(() =>
-    sequelize.transaction((transaction) =>
-      teamCreator(createContext({ transaction }), {
-        name,
-        domain,
-        subdomain,
-        avatarUrl,
-        authenticationProviders: [authenticationProvider],
-      })
-    )
-  );
-
-  return {
-    team,
-    authenticationProvider: team.authenticationProviders[0],
-    isNewTeam: true,
-  };
+  // Serialize first sign-ins. Only the request that creates the team may
+  // bootstrap its first human admin; an unrelated provider cannot join it.
+  return sequelize.transaction(async (transaction) => {
+    await LockHelper.acquire(sequelize, "instance:bootstrap", transaction);
+    const existing = await Team.findOne({ paranoid: false, transaction });
+    if (existing) {
+      if (existing.deletedAt) {
+        throw TeamPendingDeletionError();
+      }
+      const provider = await AuthenticationProvider.findOne({
+        where: { ...authenticationProvider, teamId: existing.id },
+        transaction,
+      });
+      if (!provider) {
+        throw InvalidAuthenticationError(
+          "Use this instance’s configured sign-in provider."
+        );
+      }
+      return {
+        team: existing,
+        authenticationProvider: provider,
+        isNewTeam: false,
+      };
+    }
+    const team = await teamCreator(createContext({ transaction }), {
+      name,
+      domain,
+      subdomain,
+      avatarUrl,
+      authenticationProviders: [authenticationProvider],
+    });
+    return {
+      team,
+      authenticationProvider: team.authenticationProviders[0],
+      isNewTeam: true,
+    };
+  });
 }
 
 export default traceFunction({

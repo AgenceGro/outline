@@ -22,6 +22,7 @@ import { CoalescedFetch } from "~/models/base/CoalescedFetch";
 import ParanoidModel from "~/models/base/ParanoidModel";
 import { client } from "~/utils/ApiClient";
 import type User from "./User";
+import type { UserAgent } from "./User";
 import Field from "./decorators/Field";
 import { AfterChange } from "./decorators/Lifecycle";
 
@@ -66,6 +67,15 @@ export default class Collection extends ParanoidModel {
   /** The user that owns this collection, if it is a personal collection. */
   @observable
   ownerId: string | null;
+
+  /**
+   * The agent that manages this collection, or null. Everyone signed in can
+   * read its published documents while drafts stay private, it is never
+   * shared publicly, and only admins give people or groups edit access.
+   */
+  @observable
+  managedBy: UserAgent | null = null;
+
   /**
    * Whether public sharing is enabled for the collection. Note this can also be disabled at the
    * workspace level.
@@ -167,6 +177,15 @@ export default class Collection extends ParanoidModel {
    */
   get isPersonal(): boolean {
     return !!this.ownerId;
+  }
+
+  /**
+   * Whether an agent manages this collection.
+   *
+   * @returns boolean
+   */
+  get isManaged(): boolean {
+    return this.managedBy !== null && this.managedBy !== undefined;
   }
 
   @computed

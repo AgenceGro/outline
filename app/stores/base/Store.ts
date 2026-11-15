@@ -340,7 +340,7 @@ export default abstract class Store<T extends Model> {
 
     inverseRelations.forEach((relation) => {
       const store = this.rootStore.getStoreForModelName(relation.modelName);
-      if ("orderedData" in store) {
+      if ("orderedData" in store && "addToArchive" in store) {
         const items = (store.orderedData as ArchivableModel[]).filter(
           (data) => data[relation.idKey] === item.id
         );

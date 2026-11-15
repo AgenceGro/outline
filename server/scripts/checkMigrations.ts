@@ -1,4 +1,5 @@
 import "./bootstrap";
+import { readFile } from "node:fs/promises";
 import { styleText } from "node:util";
 import type { Transaction } from "sequelize";
 import { isEmpty } from "es-toolkit/compat";
@@ -28,6 +29,10 @@ async function checkPendingMigrations() {
     lock = await sequelize.transaction();
     await LockHelper.acquire(sequelize, "migrations", lock);
 
+    // Release the read lock on teams before any schema migration on a different connection.
+    await sequelize.query(
+      await readFile("server/config/instance-preflight.sql", "utf8")
+    );
     const pending = await migrations.pending();
     if (!isEmpty(pending)) {
       if (getArg("no-migrate")) {

@@ -1,4 +1,6 @@
 import { Transaction } from "sequelize";
+import DocumentMovedProcessor from "@server/queues/processors/DocumentMovedProcessor";
+import { AuthorizationError } from "@server/errors";
 import { traceFunction } from "@server/logging/tracing";
 import { Document, Collection, Pin } from "@server/models";
 import type { APIContext } from "@server/types";
@@ -58,6 +60,10 @@ async function documentMover(
     });
   } else if (!collectionId) {
     newCollection = null;
+  }
+
+  if ((collection?.managedBy || newCollection?.managedBy) && !user.isAdmin) {
+    throw AuthorizationError();
   }
 
   if (document.publishedAt) {
@@ -217,6 +223,10 @@ async function documentMover(
       documentIds: result.documents.map((d) => d.id),
     },
   });
+
+  if ((collection?.managedBy || newCollection?.managedBy) && transaction) {
+    await new DocumentMovedProcessor().reconcile(document.id, transaction);
+  }
 
   // we need to send all updated models back to the client
   return result;

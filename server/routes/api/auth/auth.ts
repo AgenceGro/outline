@@ -1,9 +1,7 @@
 import { subHours, subMinutes } from "date-fns";
 import Router from "@koa/router";
-import { uniqBy } from "es-toolkit/compat";
 import { TeamPreference } from "@shared/types";
 import { parseDomain } from "@shared/utils/domains";
-import { getActiveSessions } from "@shared/utils/sessions";
 import env from "@server/env";
 import auth from "@server/middlewares/authentication";
 import { transaction } from "@server/middlewares/transaction";
@@ -22,7 +20,6 @@ import ValidateSSOAccessTask from "@server/queues/tasks/ValidateSSOAccessTask";
 import type { APIContext } from "@server/types";
 import { AuthenticationType } from "@server/types";
 import { clearCSRFCookie } from "@server/utils/csrf";
-import { getJWTPayload } from "@server/utils/jwt";
 import { SessionsCookieHelper } from "@server/utils/SessionsCookieHelper";
 import RateLimiter from "@server/utils/RateLimiter";
 import type * as T from "./schema";
@@ -123,26 +120,13 @@ router.post("auth.config", async (ctx: APIContext<T.AuthConfigReq>) => {
 const NON_SSO_SERVICES = ["email", "passkeys"];
 
 router.post("auth.info", auth(), async (ctx: APIContext<T.AuthInfoReq>) => {
-  const { user, service, type, token } = ctx.state.auth;
-  const [team, groups, availableTeams] = await Promise.all([
+  const { user, service, type } = ctx.state.auth;
+  const [team, groups] = await Promise.all([
     Team.scope("withDomains").findByPk(user.teamId, {
       rejectOnEmpty: true,
     }),
     user.groups(),
-    user.availableTeams(),
   ]);
-  const expiresAt =
-    type === AuthenticationType.APP
-      ? getJWTPayload(token).expiresAt
-      : undefined;
-  const rememberedTeams = await SessionsCookieHelper.reconcile(
-    ctx,
-    type === AuthenticationType.APP ? team : undefined,
-    typeof expiresAt === "string" ? new Date(expiresAt) : undefined
-  );
-  const signedInTeamIds = new Set(
-    Object.keys(getActiveSessions(SessionsCookieHelper.read(ctx)))
-  );
 
   // If the user did not _just_ sign in then we need to check if they continue
   // to have access to the workspace they are signed into. This only applies
@@ -177,14 +161,8 @@ router.post("auth.info", auth(), async (ctx: APIContext<T.AuthInfoReq>) => {
         type === AuthenticationType.APP
           ? user.getCollaborationToken()
           : undefined,
-      availableTeams: uniqBy([...rememberedTeams, ...availableTeams], "id").map(
-        (availableTeam) =>
-          presentAvailableTeam(
-            availableTeam,
-            signedInTeamIds.has(availableTeam.id) ||
-              availableTeam.id === user.teamId
-          )
-      ),
+      // Retain the response shape for older clients.
+      availableTeams: [presentAvailableTeam(team, true)],
     },
     policies: presentPolicies(user, [team, user, ...groups]),
   };
@@ -192,7 +170,7 @@ router.post("auth.info", auth(), async (ctx: APIContext<T.AuthInfoReq>) => {
 
 router.post(
   "auth.delete",
-  auth(),
+  auth({ type: AuthenticationType.APP }),
   transaction(),
   async (ctx: APIContext<T.AuthDeleteReq>) => {
     const { auth, transaction } = ctx.state;

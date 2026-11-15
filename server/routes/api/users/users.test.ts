@@ -1121,6 +1121,22 @@ describe("#users.update", () => {
     expect(body.data.preferences.rememberLastPath).toBe(true);
   });
 
+  it("persists the user's property date style and rejects unsupported styles", async () => {
+    const user = await buildUser();
+    for (const propertyDateStyle of ["short", "long"]) {
+      const response = await server.post("/api/users.update", user, {
+        body: { preferences: { propertyDateStyle } },
+      });
+      expect(response.status).toEqual(200);
+      await user.reload();
+      expect(user.preferences?.propertyDateStyle).toBe(propertyDateStyle);
+    }
+    const invalid = await server.post("/api/users.update", user, {
+      body: { preferences: { propertyDateStyle: "unknown" } },
+    });
+    expect(invalid.status).toEqual(400);
+  });
+
   it("should update sidebarSectionOrder user preference", async () => {
     const user = await buildUser();
     const res = await server.post("/api/users.update", user, {

@@ -38,6 +38,16 @@ export default class UsersStore extends Store<User> {
     return this.all.filter((user) => !user.isSuspended);
   }
 
+  /**
+   * Active or invited people, without agents. People pickers, grants of
+   * access, and member counts use these; agents stay in `all`, so their work
+   * is still attributed to them.
+   */
+  @computed
+  get people(): User[] {
+    return this.activeOrInvited.filter((user) => !user.isAgent);
+  }
+
   @computed
   get invited(): User[] {
     return this.all.filter((user) => user.isInvited);
@@ -137,7 +147,7 @@ export default class UsersStore extends Store<User> {
    */
   notInDocument = (documentId: string, query = "") => {
     const document = this.rootStore.documents.get(documentId);
-    const teamMembers = this.activeOrInvited;
+    const teamMembers = this.people;
     const documentMembers = document?.members ?? [];
     const users = differenceWith(
       teamMembers,
@@ -159,9 +169,7 @@ export default class UsersStore extends Store<User> {
       (member) => member.collectionId === collectionId
     );
     const userIds = groupUsers.map((groupUser) => groupUser.userId);
-    const users = this.activeOrInvited.filter(
-      (user) => !userIds.includes(user.id)
-    );
+    const users = this.people.filter((user) => !userIds.includes(user.id));
     return queriedUsers(users, query);
   };
 
@@ -170,9 +178,7 @@ export default class UsersStore extends Store<User> {
       (member) => member.collectionId === collectionId
     );
     const userIds = groupUsers.map((groupUser) => groupUser.userId);
-    const users = this.activeOrInvited.filter((user) =>
-      userIds.includes(user.id)
-    );
+    const users = this.people.filter((user) => userIds.includes(user.id));
     return queriedUsers(users, query);
   };
 
@@ -181,9 +187,7 @@ export default class UsersStore extends Store<User> {
       (member) => member.groupId === groupId
     );
     const userIds = groupUsers.map((groupUser) => groupUser.userId);
-    const users = this.activeOrInvited.filter(
-      (user) => !userIds.includes(user.id)
-    );
+    const users = this.people.filter((user) => !userIds.includes(user.id));
     return queriedUsers(users, query);
   };
 
@@ -192,9 +196,7 @@ export default class UsersStore extends Store<User> {
       (member) => member.groupId === groupId
     );
     const userIds = groupUsers.map((groupUser) => groupUser.userId);
-    const users = this.activeOrInvited.filter((user) =>
-      userIds.includes(user.id)
-    );
+    const users = this.people.filter((user) => userIds.includes(user.id));
     return queriedUsers(users, query);
   };
 

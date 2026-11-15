@@ -3,68 +3,20 @@ import { TeamDomain } from "@server/models";
 import {
   buildAdmin,
   buildCollection,
-  buildSubdomain,
   buildTeam,
   buildUser,
 } from "@server/test/factories";
-import { getTestServer, setSelfHosted } from "@server/test/support";
+import { getTestServer } from "@server/test/support";
 
 const server = getTestServer();
 
 describe("teams.create", () => {
-  it("creates a team", async () => {
-    const team = await buildTeam();
-    const user = await buildAdmin({ teamId: team.id });
-    const name = faker.company.name();
+  it("does not let even an admin create another instance", async () => {
+    const user = await buildAdmin();
     const res = await server.post("/api/teams.create", user, {
-      body: {
-        name,
-      },
+      body: { name: "Another instance" },
     });
-    const body = await res.json();
-    expect(res.status).toEqual(200);
-    expect(body.data.team.name).toEqual(name);
-  });
-
-  it("strips a top-level domain from the generated subdomain", async () => {
-    const team = await buildTeam();
-    const user = await buildAdmin({ teamId: team.id });
-    const slug = buildSubdomain();
-    const res = await server.post("/api/teams.create", user, {
-      body: {
-        name: `${slug}.com`,
-      },
-    });
-    const body = await res.json();
-    expect(res.status).toEqual(200);
-    expect(body.data.team.subdomain).toEqual(slug);
-  });
-
-  it("strips a top-level domain preceded by whitespace", async () => {
-    const team = await buildTeam();
-    const user = await buildAdmin({ teamId: team.id });
-    const slug = buildSubdomain();
-    const res = await server.post("/api/teams.create", user, {
-      body: {
-        name: `${slug} .com`,
-      },
-    });
-    const body = await res.json();
-    expect(res.status).toEqual(200);
-    expect(body.data.team.subdomain).toEqual(slug);
-  });
-
-  it("requires a cloud hosted deployment", async () => {
-    setSelfHosted();
-
-    const team = await buildTeam();
-    const user = await buildAdmin({ teamId: team.id });
-    const res = await server.post("/api/teams.create", user, {
-      body: {
-        name: faker.company.name(),
-      },
-    });
-    expect(res.status).toEqual(403);
+    expect(res.status).toBe(403);
   });
 });
 

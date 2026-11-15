@@ -1,5 +1,10 @@
 import { observer } from "mobx-react";
-import { GlobeIcon, PadlockIcon, TeamIcon } from "outline-icons";
+import {
+  BuildingBlocksIcon,
+  GlobeIcon,
+  PadlockIcon,
+  TeamIcon,
+} from "outline-icons";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
@@ -30,7 +35,10 @@ export const CollectionMeta = observer(function CollectionMeta_({
 
   const share = shares.getByCollectionId(collection.id);
   const isPubliclyShared =
-    team.sharing !== false && collection.sharing !== false && !!share?.isActive;
+    !collection.isManaged &&
+    team.sharing !== false &&
+    collection.sharing !== false &&
+    !!share?.isActive;
 
   // The document structure is cached on the collection once loaded, so this is
   // a no-op when the sidebar or another tab has already requested it.
@@ -44,23 +52,49 @@ export const CollectionMeta = observer(function CollectionMeta_({
 
   return (
     <Meta align="center" dir="ltr">
-      <Tooltip
-        content={
-          collection.isPrivate
-            ? t("Only members with access can view")
-            : t("All members in the workspace can view")
-        }
-        side="bottom"
-      >
-        <IconLabel align="center">
-          {collection.isPrivate ? (
-            <PadlockIcon size={18} />
-          ) : (
-            <TeamIcon size={18} />
-          )}
-          {collection.isPrivate ? t("Private") : t("Workspace")}
-        </IconLabel>
-      </Tooltip>
+      {collection.isManaged ? (
+        <>
+          <Tooltip
+            content={t("Only admins can give people and groups edit access")}
+            side="bottom"
+          >
+            <IconLabel align="center">
+              <BuildingBlocksIcon size={18} />
+              {t("Managed by Altai")}
+            </IconLabel>
+          </Tooltip>
+          <Separator />
+          <Tooltip
+            content={t(
+              "Everyone signed in can read published documents. Drafts stay private."
+            )}
+            side="bottom"
+          >
+            <IconLabel align="center">
+              <TeamIcon size={18} />
+              {t("Everyone can read")}
+            </IconLabel>
+          </Tooltip>
+        </>
+      ) : (
+        <Tooltip
+          content={
+            collection.isPrivate
+              ? t("Only members with access can view")
+              : t("All members in the workspace can view")
+          }
+          side="bottom"
+        >
+          <IconLabel align="center">
+            {collection.isPrivate ? (
+              <PadlockIcon size={18} />
+            ) : (
+              <TeamIcon size={18} />
+            )}
+            {collection.isPrivate ? t("Private") : t("Workspace")}
+          </IconLabel>
+        </Tooltip>
+      )}
       {isPubliclyShared && (
         <>
           <Separator />

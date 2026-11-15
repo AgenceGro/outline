@@ -1,40 +1,10 @@
 import Desktop from "~/utils/Desktop";
 
-/** The hostname of the default Outline cloud installation. */
-export const DefaultHostname = "app.getoutline.com";
-
-/** The origin of the default Outline cloud installation. */
-export const DefaultHost = `https://${DefaultHostname}`;
-
-function validateAndEncodeSubdomain(subdomain: string): string {
-  const encodedSubdomain = encodeURIComponent(subdomain);
-  const urlPattern = /^[a-z\d-]{1,63}$/;
-  if (!urlPattern.test(encodedSubdomain)) {
-    throw new Error("Invalid subdomain");
-  }
-  return `https://${encodedSubdomain}.getoutline.com`;
-}
-
-/**
- * Redirect to a subdomain, adding it to the custom hosts list on desktop first.
- *
- * @param subdomain The subdomain to navigate to
- */
-export async function navigateToSubdomain(subdomain: string) {
-  const normalizedSubdomain = subdomain
-    .toLowerCase()
-    .trim()
-    .replace(/^https?:\/\//, "");
-  const host = validateAndEncodeSubdomain(normalizedSubdomain);
-  await Desktop.bridge?.addCustomHost(host);
-  window.location.href = host;
-}
-
 /**
  * Normalize a user-entered host into an origin URL, defaulting to https.
  *
  * @param input The host entered by the user.
- * @returns the normalized origin (e.g. "https://app.getoutline.com").
+ * @returns the normalized origin (e.g. "https://docs.example.com").
  * @throws if the input cannot be parsed into a valid URL.
  */
 export function normalizeHost(input: string): string {

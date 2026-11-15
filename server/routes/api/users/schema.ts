@@ -128,6 +128,7 @@ export const UsersUpdateSchema = BaseSchema.extend({
         [UserPreference.EnableSmartText]: z.boolean(),
         [UserPreference.ShowDocumentStats]: z.boolean(),
         [UserPreference.NotificationBadge]: z.enum(NotificationBadgeType),
+        [UserPreference.PropertyDateStyle]: z.enum(["short", "long"]),
         [UserPreference.SidebarSectionOrder]: z.array(z.enum(SidebarSection)),
       })
       .partial()

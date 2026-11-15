@@ -53,15 +53,16 @@ export function UsersTable({ canManage, ...rest }: Props) {
   const { t } = useTranslation();
   const currentUser = useCurrentUser();
 
-  // The current user is excluded, none of the bulk actions apply to yourself.
+  // The current user and agents are excluded, none of the bulk actions apply
+  // to yourself or to agents.
   const isRowSelectable = useCallback(
-    (user: User) => canManage && user.id !== currentUser.id,
+    (user: User) => canManage && user.id !== currentUser.id && !user.isAgent,
     [canManage, currentUser.id]
   );
 
   const applyContextMenu = useCallback(
     (user: User, rowElement: React.ReactNode) => {
-      if (currentUser.id === user.id) {
+      if (currentUser.id === user.id || user.isAgent) {
         return rowElement;
       }
 
@@ -149,21 +150,26 @@ export function UsersTable({ canManage, ...rest }: Props) {
           id: "role",
           header: t("Role"),
           accessor: (user) => user.role,
-          component: (user) => (
-            <HStack spacing={4}>
-              {user.isInvited && <Badge>{t("Invited")}</Badge>}
-              {user.isAdmin ? (
-                <Badge primary>{t("Admin")}</Badge>
-              ) : user.isViewer ? (
-                <Badge>{t("Viewer")}</Badge>
-              ) : user.isGuest ? (
-                <Badge>{t("Guest")}</Badge>
-              ) : (
-                <Badge>{t("Editor")}</Badge>
-              )}
-              {user.isSuspended && <Badge>{t("Suspended")}</Badge>}
-            </HStack>
-          ),
+          component: (user) =>
+            user.isAgent ? (
+              <HStack spacing={4}>
+                <Badge>{t("Agent")}</Badge>
+              </HStack>
+            ) : (
+              <HStack spacing={4}>
+                {user.isInvited && <Badge>{t("Invited")}</Badge>}
+                {user.isAdmin ? (
+                  <Badge primary>{t("Admin")}</Badge>
+                ) : user.isViewer ? (
+                  <Badge>{t("Viewer")}</Badge>
+                ) : user.isGuest ? (
+                  <Badge>{t("Guest")}</Badge>
+                ) : (
+                  <Badge>{t("Editor")}</Badge>
+                )}
+                {user.isSuspended && <Badge>{t("Suspended")}</Badge>}
+              </HStack>
+            ),
           width: "minmax(160px, 2fr)",
         },
         canManage
@@ -171,7 +177,9 @@ export function UsersTable({ canManage, ...rest }: Props) {
               type: "action",
               id: "action",
               component: (user) =>
-                currentUser.id !== user.id ? <UserMenu user={user} /> : null,
+                currentUser.id !== user.id && !user.isAgent ? (
+                  <UserMenu user={user} />
+                ) : null,
               width: "50px",
             }
           : undefined,

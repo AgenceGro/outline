@@ -17,6 +17,8 @@ import {
   InternetIcon,
   SmileyIcon,
   BrowserIcon,
+  BuildingBlocksIcon,
+  InputIcon,
 } from "outline-icons";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,6 +33,9 @@ import usePolicy from "./usePolicy";
 import useStores from "./useStores";
 
 const AI = lazy(() => import("~/scenes/Settings/AI"));
+const Altai = lazy(() => import("~/scenes/Settings/Altai"), {
+  exportName: "Altai",
+});
 const ApiKeys = lazy(() => import("~/scenes/Settings/ApiKeys"));
 const Applications = lazy(() => import("~/scenes/Settings/Applications"));
 const APIAndAccess = lazy(() => import("~/scenes/Settings/APIAndAccess"));
@@ -44,6 +49,9 @@ const Users = lazy(() => import("~/scenes/Settings/Users"));
 const Notifications = lazy(() => import("~/scenes/Settings/Notifications"));
 const Preferences = lazy(() => import("~/scenes/Settings/Preferences"));
 const Profile = lazy(() => import("~/scenes/Settings/Profile"));
+const Properties = lazy(() => import("~/scenes/Settings/Properties"), {
+  exportName: "Properties",
+});
 const Security = lazy(() => import("~/scenes/Settings/Security"));
 const Shares = lazy(() => import("~/scenes/Settings/Shares"));
 const Templates = lazy(() => import("~/scenes/Settings/Templates"));
@@ -172,6 +180,15 @@ const useSettingsConfig = () => {
         icon: ShapesIcon,
       },
       {
+        name: t("Properties"),
+        path: settingsPath("properties"),
+        component: Properties.Component,
+        preload: Properties.preload,
+        enabled: can.update,
+        group: t("Workspace"),
+        icon: InputIcon,
+      },
+      {
         name: t("Emojis"),
         path: settingsPath("emojis"),
         component: CustomEmojis.Component,
@@ -228,6 +245,18 @@ const useSettingsConfig = () => {
         enabled: can.update,
         group: t("Integrations"),
         icon: BrowserIcon,
+      },
+      {
+        name: "Altai",
+        path: integrationSettingsPath("altai"),
+        component: Altai.Component,
+        preload: Altai.preload,
+        description: t(
+          "See how the Altai agent works and manage the legacy scoped token."
+        ),
+        enabled: can.update,
+        group: t("Integrations"),
+        icon: BuildingBlocksIcon,
       },
       {
         name: `${t("Install")}…`,

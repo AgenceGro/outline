@@ -41,8 +41,40 @@ import presentNotification from "@server/presenters/notification";
 import type { Event } from "../../types";
 
 export default class WebsocketsProcessor {
-  public async perform(event: Event, socketio: Server) {
+  public async perform(
+    event:
+      | Event
+      | {
+          name: "documentProperties.invalidate";
+          teamId: string;
+          documentId: string;
+        }
+      | { name: "propertyDefinitions.invalidate"; teamId: string },
+    socketio: Server
+  ) {
     switch (event.name) {
+      case "propertyDefinitions.invalidate":
+        return socketio.to(`team-${event.teamId}`).emit(event.name, {});
+      case "documentProperties.invalidate": {
+        const document = await Document.scope("withCollection").findOne({
+          where: {
+            id: event.documentId,
+            teamId: event.teamId,
+            template: false,
+          },
+          attributes: ["id", "createdById", "collectionId", "publishedAt"],
+        });
+        if (!document) {
+          return;
+        }
+        const channels = await this.getDocumentEventChannels({}, document);
+        if (!document.publishedAt) {
+          channels.push(`user-${document.createdById}`);
+        }
+        return socketio
+          .to(channels)
+          .emit(event.name, { documentId: document.id });
+      }
       case "templates.create":
       case "templates.update":
       case "templates.restore": {
@@ -1060,7 +1092,7 @@ export default class WebsocketsProcessor {
   }
 
   private getCollectionEventChannels(
-    event: Event,
+    event: { actorId?: string | null },
     collection: Collection
   ): string[] {
     const channels = [];
@@ -1124,7 +1156,7 @@ export default class WebsocketsProcessor {
   }
 
   private async getDocumentEventChannels(
-    event: Event,
+    event: { actorId?: string | null },
     document: Document
   ): Promise<string[]> {
     const channels = [];

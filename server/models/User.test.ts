@@ -124,7 +124,7 @@ describe("user model", () => {
         error = err;
       }
 
-      expect(errToString(error)).toContain("Cannot delete last user");
+      expect(errToString(error)).toContain("Cannot delete the last human user");
     });
 
     it("should prevent last admin from deleting account", async () => {
@@ -182,21 +182,6 @@ describe("user model", () => {
     it("should set JWT secret", async () => {
       const user = await buildUser();
       expect(user.getSessionToken()).toBeTruthy();
-    });
-  });
-
-  describe("availableTeams", () => {
-    it("should return teams where another user with the same email exists", async () => {
-      const email = faker.internet.email().toLowerCase();
-      const user = await buildUser({
-        email,
-      });
-      const anotherUser = await buildUser({ email });
-
-      const response = await user.availableTeams();
-      const teamIds = response.map((t) => t.id).sort();
-      const expectedTeamIds = [user.teamId, anotherUser.teamId].sort();
-      expect(teamIds).toEqual(expectedTeamIds);
     });
   });
 

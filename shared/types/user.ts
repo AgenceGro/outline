@@ -32,6 +32,8 @@ export enum UserPreference {
   ShowDocumentStats = "showDocumentStats",
   /** The style of notification badge to display. */
   NotificationBadge = "notificationBadge",
+  /** The format of calendar dates in document properties. */
+  PropertyDateStyle = "propertyDateStyle",
   /** The display order of the reorderable sections in the sidebar. */
   SidebarSectionOrder = "sidebarSectionOrder",
 }
@@ -71,6 +73,7 @@ export enum NotificationBadgeType {
 
 /** User preference values, keyed by preference. */
 export type UserPreferences = {
+  [UserPreference.PropertyDateStyle]?: "short" | "long";
   [UserPreference.RememberLastPath]?: boolean;
   [UserPreference.UseCursorPointer]?: boolean;
   [UserPreference.CodeBlockLineNumers]?: boolean;

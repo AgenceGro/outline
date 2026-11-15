@@ -156,6 +156,10 @@ class User extends ParanoidModel<
   @Column(DataType.STRING)
   name: string;
 
+  /** Reserved non-human identity, assigned only by instance provisioning. */
+  @Column(DataType.TEXT)
+  agent: "altai" | null;
+
   @Default(UserRole.Member)
   @Column(DataType.ENUM(...Object.values(UserRole)))
   role: UserRole;
@@ -497,6 +501,14 @@ class User extends ParanoidModel<
       findOptions.lock;
 
     const fetchCollectionIds = async () => {
+      if (this.agent) {
+        const all = await Collection.findAll({
+          ...findOptions,
+          attributes: ["id"],
+          where: { teamId: this.teamId },
+        });
+        return all.map((collection) => collection.id);
+      }
       const collectionStubs = await Collection.findAll({
         attributes: ["id"],
         where: {
@@ -506,6 +518,7 @@ class User extends ParanoidModel<
             [Op.or]: [{ [Op.is]: null }, { [Op.eq]: this.id }],
           },
           [Op.or]: [
+            { managedBy: "altai" },
             ...(this.isGuest
               ? []
               : [
@@ -630,6 +643,15 @@ class User extends ParanoidModel<
     return this.save(options);
   };
 
+  private get sessionSigningSecret() {
+    if (this.agent) {
+      throw ValidationError(
+        "Agents authenticate only with operator-issued API keys."
+      );
+    }
+    return this.jwtSecret;
+  }
+
   /**
    * Returns a session token that is used to make API requests and is stored
    * in the client browser cookies to remain logged in.
@@ -646,7 +668,7 @@ class User extends ParanoidModel<
         type: "session",
         service,
       },
-      this.jwtSecret
+      this.sessionSigningSecret
     );
 
   /**
@@ -662,7 +684,7 @@ class User extends ParanoidModel<
         expiresAt: addHours(new Date(), 24).toISOString(),
         type: "collaboration",
       },
-      this.jwtSecret
+      this.sessionSigningSecret
     );
 
   /**
@@ -682,7 +704,7 @@ class User extends ParanoidModel<
         type: "transfer",
         service,
       },
-      this.jwtSecret
+      this.sessionSigningSecret
     );
 
   /**
@@ -701,7 +723,7 @@ class User extends ParanoidModel<
         createdAt: new Date().toISOString(),
         type: "email-signin",
       },
-      this.jwtSecret
+      this.sessionSigningSecret
     );
 
   /**
@@ -735,25 +757,8 @@ class User extends ParanoidModel<
         email,
         type: "email-update",
       },
-      this.jwtSecret
+      this.sessionSigningSecret
     );
-
-  /**
-   * Returns a list of teams that have a user matching this user's email.
-   *
-   * @returns A promise resolving to a list of teams
-   */
-  availableTeams = async () =>
-    Team.findAll({
-      include: [
-        {
-          model: this.constructor as typeof User,
-          required: true,
-          where: { email: this.email },
-        },
-      ],
-      order: [["createdAt", "ASC"]],
-    });
 
   // hooks
 
@@ -773,14 +778,13 @@ class User extends ParanoidModel<
     const usersCount = await this.count({
       where: {
         teamId: model.teamId,
+        agent: null,
       },
       transaction,
     });
 
     if (usersCount === 1) {
-      throw ValidationError(
-        "Cannot delete last user on the team, delete the workspace instead."
-      );
+      throw ValidationError("Cannot delete the last human user.");
     }
   }
 
@@ -805,6 +809,8 @@ class User extends ParanoidModel<
       where: {
         teamId: model.teamId,
         role: UserRole.Admin,
+        suspendedAt: null,
+        agent: null,
         id: {
           [Op.ne]: model.id,
         },
@@ -851,9 +857,10 @@ class User extends ParanoidModel<
     const previousRole = model.previous("role");
 
     if (
-      model.changed("role") &&
-      previousRole === UserRole.Admin &&
-      UserRoleHelper.isRoleLower(model.role, UserRole.Admin)
+      (previousRole ?? model.role) === UserRole.Admin &&
+      ((model.changed("role") &&
+        UserRoleHelper.isRoleLower(model.role, UserRole.Admin)) ||
+        (model.changed("suspendedAt") && model.suspendedAt !== null))
     ) {
       // Shares the lock name with the deletion checks, so a demotion and a
       // deletion cannot each count the other account as the remaining admin.
@@ -867,6 +874,8 @@ class User extends ParanoidModel<
         where: {
           teamId: model.teamId,
           role: UserRole.Admin,
+          suspendedAt: null,
+          agent: null,
           id: {
             [Op.ne]: model.id,
           },
@@ -1012,7 +1021,7 @@ class User extends ParanoidModel<
         COUNT(CASE WHEN "suspendedAt" IS NULL AND "lastActiveAt" IS NOT NULL THEN 1 END) as "activeCount",
         COUNT(*) as count
       FROM users
-      WHERE "deletedAt" IS NULL
+      WHERE "deletedAt" IS NULL AND agent IS NULL
       AND "teamId" = :teamId
     `;
     const [counts] = await this.sequelize!.query<{

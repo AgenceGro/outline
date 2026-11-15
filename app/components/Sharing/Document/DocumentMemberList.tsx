@@ -20,6 +20,7 @@ import { EmptySelectValue } from "~/types";
 import { homePath } from "~/utils/routeHelpers";
 import { ListItem } from "../components/ListItem";
 import { GroupMembersPopover } from "../components";
+import { canGrantAccess, managedPermissions } from "../managedAccess";
 import DocumentMemberListItem from "./DocumentMemberListItem";
 import ButtonLink from "~/components/ButtonLink";
 
@@ -40,6 +41,12 @@ function DocumentMemberList({ document, invitedInSession }: Props) {
   const can = usePolicy(document);
   const { t } = useTranslation();
   const theme = useTheme();
+  const managed = !!document.collection?.isManaged;
+  const canGrant = canGrantAccess({
+    managed,
+    canManageUsers: can.manageUsers,
+    isAdmin: user.isAdmin,
+  });
 
   const handleRemoveUser = React.useCallback(
     async (item: User) => {
@@ -92,7 +99,9 @@ function DocumentMemberList({ document, invitedInSession }: Props) {
       orderBy(
         Array.from(
           new Map(
-            document.members.map((memberUser) => [memberUser.id, memberUser])
+            document.members
+              .filter((memberUser) => !memberUser.isAgent)
+              .map((memberUser) => [memberUser.id, memberUser])
           ).values()
         ),
         (memberUser) =>
@@ -177,7 +186,11 @@ function DocumentMemberList({ document, invitedInSession }: Props) {
               actions={
                 <div style={{ marginRight: -8 }}>
                   <InputMemberPermissionSelect
-                    permissions={permissions}
+                    permissions={
+                      managed
+                        ? managedPermissions(permissions, membership.permission)
+                        : permissions
+                    }
                     onChange={async (
                       permission: DocumentPermission | typeof EmptySelectValue
                     ) => {
@@ -194,7 +207,7 @@ function DocumentMemberList({ document, invitedInSession }: Props) {
                         });
                       }
                     }}
-                    disabled={!can.manageUsers}
+                    disabled={!canGrant}
                     value={membership.permission}
                   />
                 </div>
@@ -207,9 +220,10 @@ function DocumentMemberList({ document, invitedInSession }: Props) {
           key={item.id}
           user={item}
           membership={item.getMembership(document)}
+          managed={managed}
           onRemove={() => handleRemoveUser(item)}
           onUpdate={
-            can.manageUsers
+            canGrant
               ? (permission) => handleUpdateUser(item, permission)
               : undefined
           }

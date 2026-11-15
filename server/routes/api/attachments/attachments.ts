@@ -79,7 +79,7 @@ router.post(
     // If a specific user is passed then add to filters
     if (userId && user.isAdmin) {
       where.userId = userId;
-    } else {
+    } else if (!user.agent) {
       where.userId = user.id;
     }
 

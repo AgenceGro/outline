@@ -5,38 +5,17 @@ import {
   navigateToWorkspaceSettings,
   logout,
 } from "~/actions/definitions/navigation";
-import {
-  createTeam,
-  switchTeamsList,
-  desktopLoginTeam,
-} from "~/actions/definitions/teams";
-import useActionContext from "~/hooks/useActionContext";
 import { DropdownMenu } from "~/components/Menu/DropdownMenu";
-import { ActionSeparator } from "~/actions";
 import { useMenuAction } from "~/hooks/useMenuAction";
 
 type Props = {
   children?: React.ReactNode;
 };
 
+const actions = [navigateToWorkspaceSettings, logout];
+
 const TeamMenu: React.FC<Props> = ({ children }: Props) => {
   const { t } = useTranslation();
-  const context = useActionContext({ isMenu: true });
-
-  // NOTE: it's useful to memoize on the team id and session because the action
-  // menu is not cached at all.
-  const actions = React.useMemo(
-    () => [
-      ...switchTeamsList(context),
-      createTeam,
-      desktopLoginTeam,
-      ActionSeparator,
-      navigateToWorkspaceSettings,
-      logout,
-    ],
-    [context]
-  );
-
   const rootAction = useMenuAction(actions);
 
   return (

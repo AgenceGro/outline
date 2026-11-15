@@ -270,6 +270,9 @@ async function validateAuthentication(
       throw AuthenticationError("Invalid API key");
     }
 
+    if (user.agent && transport !== "header") {
+      throw AuthenticationError("Agent keys require a bearer header");
+    }
     scope = apiKey.scope ?? ["*"];
     await apiKey.updateActiveAt();
   } else {
@@ -285,6 +288,13 @@ async function validateAuthentication(
     const result = await getUserForJWT(token);
     user = result.user;
     service = result.service;
+  }
+
+  if (
+    user.agent &&
+    (type !== AuthenticationType.API || user.team.isSuspended)
+  ) {
+    throw AuthenticationError("Invalid agent authentication");
   }
 
   if (user.isSuspended) {

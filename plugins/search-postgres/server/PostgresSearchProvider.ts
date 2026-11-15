@@ -791,7 +791,9 @@ export default class PostgresSearchProvider extends BaseSearchProvider {
     // For Team contexts (share-based search), the caller is privileged and has
     // done its own authorization — narrow to the filter's collectionId if
     // specified, otherwise to the team's publicly-permissioned set.
-    if (model instanceof User) {
+    if (model instanceof User && model.agent) {
+      where[Op.or].push({ teamId });
+    } else if (model instanceof User) {
       const [membershipDocumentIds, collectionIds] = await Promise.all([
         Document.membershipDocumentIds(model.id),
         model.collectionIds(),

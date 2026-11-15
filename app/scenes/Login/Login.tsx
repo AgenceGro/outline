@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { EmailIcon } from "outline-icons";
 import * as React from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useLocation, Link, Redirect } from "react-router-dom";
+import { useLocation, Redirect } from "react-router-dom";
 import styled from "styled-components";
 import { getCookie, setCookie } from "tiny-cookie";
 import { s } from "@shared/styles";
@@ -14,10 +14,8 @@ import type { Config } from "~/stores/AuthStore";
 import { AvatarSize } from "~/components/Avatar";
 import ButtonLarge from "~/components/ButtonLarge";
 import ChangeLanguage from "~/components/ChangeLanguage";
-import Flex from "~/components/Flex";
 import Heading from "~/components/Heading";
 import OutlineIcon from "~/components/Icons/OutlineIcon";
-import Input from "~/components/Input";
 import LoadingIndicator from "~/components/LoadingIndicator";
 import { OneTimePasswordInput } from "~/components/OneTimePasswordInput";
 import PageTitle from "~/components/PageTitle";
@@ -44,7 +42,6 @@ import { Notices } from "./components/Notices";
 import { PasskeyAuthenticationProvider } from "./components/PasskeyAuthenticationProvider";
 import { SigningIn } from "./components/SigningIn";
 import { SwitchHostButton } from "./components/SwitchHostButton";
-import { navigateToSubdomain } from "./urls";
 import lazyWithRetry from "@shared/utils/lazyWithRetry";
 import { getRedirectUrl } from "~/utils/urls";
 
@@ -60,7 +57,6 @@ type Props = {
 function Login({ children, onBack }: Props) {
   const location = useLocation();
   const query = useQuery();
-  const notice = query.get("notice");
   const forceOTP = query.get("forceOTP");
 
   const { t } = useTranslation();
@@ -69,7 +65,6 @@ function Login({ children, onBack }: Props) {
   const { config } = auth;
   const [error, setError] = React.useState(null);
   const [emailLinkSentTo, setEmailLinkSentTo] = React.useState("");
-  const isCreate = location.pathname === "/create";
   const rememberLastPath = !!user?.getPreference(
     UserPreference.RememberLastPath
   );
@@ -99,15 +94,6 @@ function Login({ children, onBack }: Props) {
   const handleEmailSuccess = React.useCallback((email: string) => {
     setEmailLinkSentTo(email);
   }, []);
-
-  const handleGoSubdomain = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      const data = Object.fromEntries(new FormData(event.currentTarget));
-      await navigateToSubdomain(data.subdomain as string);
-    },
-    []
-  );
 
   React.useEffect(() => {
     auth.fetchConfig().catch(setError);
@@ -205,7 +191,7 @@ function Login({ children, onBack }: Props) {
   if (isCloudHosted && isCustomDomain && !config.name) {
     return (
       <Background>
-        <BackButton onBack={onBack} config={config} />
+        <BackButton onBack={onBack} />
         <ChangeLanguage locale={detectLanguage()} />
         <Centered>
           <PageTitle title={t("Custom domain setup")} />
@@ -220,45 +206,12 @@ function Login({ children, onBack }: Props) {
     );
   }
 
-  if (Desktop.isElectron() && notice === "domain-required") {
-    return (
-      <Background>
-        <BackButton onBack={onBack} config={config} />
-        <ChangeLanguage locale={detectLanguage()} />
-
-        <Centered as="form" onSubmit={handleGoSubdomain}>
-          <Heading centered>{t("Choose workspace")}</Heading>
-          <Note>
-            {t(
-              "This login method requires choosing your workspace to continue"
-            )}
-            …
-          </Note>
-          <Flex>
-            <Input
-              name="subdomain"
-              style={{ textAlign: "right" }}
-              placeholder={t("subdomain")}
-              pattern="^[a-z\d-]+$"
-              required
-            >
-              <Domain>.getoutline.com</Domain>
-            </Input>
-          </Flex>
-          <ButtonLarge type="submit" fullwidth>
-            {t("Continue")}
-          </ButtonLarge>
-        </Centered>
-      </Background>
-    );
-  }
-
   const firstRun =
     config.providers.length === 0 && !isCloudHosted && !config.name;
   const hasMultipleProviders = config.providers.length > 1;
   const defaultProvider = find(
     config.providers,
-    (provider) => provider.id === auth.lastSignedIn && !isCreate
+    (provider) => provider.id === auth.lastSignedIn
   );
   const clientType = Desktop.isElectron() ? Client.Desktop : Client.Web;
   const preferOTP = isPWA || !!forceOTP;
@@ -274,7 +227,7 @@ function Login({ children, onBack }: Props) {
   if (emailLinkSentTo) {
     return (
       <Background>
-        <BackButton onBack={onBack} config={config} />
+        <BackButton onBack={onBack} />
         <Centered>
           <PageTitle title={t("Check your email")} />
           <CheckEmailIcon size={38} />
@@ -333,7 +286,7 @@ function Login({ children, onBack }: Props) {
 
   return (
     <Background>
-      <BackButton onBack={onBack} config={config} />
+      <BackButton onBack={onBack} />
       <ChangeLanguage locale={detectLanguage()} />
       <SwitchHostButton />
 
@@ -342,38 +295,22 @@ function Login({ children, onBack }: Props) {
           title={config.name ? `${config.name} – ${t("Login")}` : t("Login")}
         />
         <Logo>
-          {config.logo && !isCreate ? (
+          {config.logo ? (
             <TeamLogo size={AvatarSize.XXLarge} src={config.logo} />
           ) : (
             <OutlineIcon size={AvatarSize.XXLarge} />
           )}
         </Logo>
-        {isCreate ? (
-          <>
-            <StyledHeading as="h2" centered>
-              {t("Create a workspace")}
-            </StyledHeading>
-            <Content>
-              {t(
-                "Get started by choosing a sign-in method for your new workspace below…"
-              )}
-            </Content>
-          </>
-        ) : (
-          <>
-            <StyledHeading as="h2" centered>
-              {t("Log in to {{ authProviderName }}", {
-                authProviderName: config.name || env.APP_NAME,
-              })}
-            </StyledHeading>
-            {children?.(config)}
-          </>
-        )}
+        <StyledHeading as="h2" centered>
+          {t("Log in to {{ authProviderName }}", {
+            authProviderName: config.name || env.APP_NAME,
+          })}
+        </StyledHeading>
+        {children?.(config)}
         <Notices />
         {defaultProvider && (
           <React.Fragment key={defaultProvider.id}>
             <AuthenticationProvider
-              isCreate={isCreate}
               onEmailSuccess={handleEmailSuccess}
               preferOTP={preferOTP}
               {...defaultProvider}
@@ -398,7 +335,6 @@ function Login({ children, onBack }: Props) {
           return (
             <AuthenticationProvider
               key={provider.id}
-              isCreate={isCreate}
               onEmailSuccess={handleEmailSuccess}
               preferOTP={preferOTP}
               neutral={defaultProvider && hasMultipleProviders}
@@ -406,13 +342,6 @@ function Login({ children, onBack }: Props) {
             />
           );
         })}
-        {isCreate && (
-          <Note>
-            <Trans>
-              Already have an account? Go to <Link to="/">login</Link>.
-            </Trans>
-          </Note>
-        )}
       </Centered>
     </Background>
   );
@@ -426,23 +355,12 @@ const StyledHeading = styled(Heading)`
   margin: 0;
 `;
 
-const Domain = styled.div`
-  color: ${s("textSecondary")};
-  padding: 0 8px 0 0;
-`;
-
 const CheckEmailIcon = styled(EmailIcon)`
   margin-bottom: -1.5em;
 `;
 
 const Logo = styled.div`
   margin-bottom: -4px;
-`;
-
-const Content = styled(Text)`
-  color: ${s("textSecondary")};
-  text-align: center;
-  margin-top: -8px;
 `;
 
 const Note = styled(Text).attrs({ size: "small" })`

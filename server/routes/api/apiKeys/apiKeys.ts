@@ -57,6 +57,7 @@ router.post(
 
     let userWhere: WhereOptions<User> = {
       teamId: actor.teamId,
+      agent: null,
     };
 
     if (cannot(actor, "listApiKeys", actor.team)) {

@@ -53,6 +53,9 @@ allow(User, "read", Collection, (user, collection) => {
   if (!collection || user.teamId !== collection.teamId) {
     return false;
   }
+  if (user.agent || collection.managedBy) {
+    return true;
+  }
   if (collection.isPersonal) {
     return isCollectionOwner(user, collection);
   }
@@ -104,6 +107,9 @@ allow(
       return false;
     }
 
+    if (user.agent || collection.managedBy) {
+      return true;
+    }
     if (collection.isPersonal) {
       return isCollectionOwner(user, collection);
     }
@@ -136,13 +142,13 @@ allow(User, "shareDocument", Collection, (user, collection) => {
   ) {
     return false;
   }
-  if (!collection.sharing) {
+  if (collection.managedBy || !collection.sharing) {
     return false;
   }
   if (collection.isPersonal) {
     return isCollectionOwner(user, collection);
   }
-  if (!collection.isPrivate && user.isAdmin) {
+  if (user.agent || (!collection.isPrivate && user.isAdmin)) {
     return true;
   }
 
@@ -168,6 +174,40 @@ allow(User, "updateDocument", Collection, (user, collection) => {
   ) {
     return false;
   }
+  if (user.agent || (collection.managedBy && user.isAdmin)) {
+    return true;
+  }
+  if (collection.isPersonal) {
+    return isCollectionOwner(user, collection);
+  }
+
+  if (
+    collection.permission !== CollectionPermission.ReadWrite ||
+    user.isViewer ||
+    user.isGuest
+  ) {
+    return includesMembership(collection, [
+      CollectionPermission.ReadWrite,
+      CollectionPermission.Admin,
+    ]);
+  }
+
+  return true;
+});
+
+allow(User, "createDocument", Collection, (user, collection) => {
+  if (
+    !collection ||
+    !collection.isActive ||
+    !isTeamModel(user, collection) ||
+    !isTeamMutable(user) ||
+    !isCollectionWritable(user, collection)
+  ) {
+    return false;
+  }
+  if (user.agent || (collection.managedBy && user.isAdmin)) {
+    return true;
+  }
   if (collection.isPersonal) {
     return isCollectionOwner(user, collection);
   }
@@ -188,35 +228,11 @@ allow(User, "updateDocument", Collection, (user, collection) => {
 
 allow(
   User,
-  ["createDocument", "deleteDocument"],
+  "deleteDocument",
   Collection,
-  (user, collection) => {
-    if (
-      !collection ||
-      !collection.isActive ||
-      !isTeamModel(user, collection) ||
-      !isTeamMutable(user) ||
-      !isCollectionWritable(user, collection)
-    ) {
-      return false;
-    }
-    if (collection.isPersonal) {
-      return isCollectionOwner(user, collection);
-    }
-
-    if (
-      collection.permission !== CollectionPermission.ReadWrite ||
-      user.isViewer ||
-      user.isGuest
-    ) {
-      return includesMembership(collection, [
-        CollectionPermission.ReadWrite,
-        CollectionPermission.Admin,
-      ]);
-    }
-
-    return true;
-  }
+  (user, collection) =>
+    (!collection?.managedBy || user.isAdmin) &&
+    can(user, "createDocument", collection)
 );
 
 allow(
@@ -257,6 +273,7 @@ allow(User, "update", Collection, (user, collection) =>
     isTeamModel(user, collection),
     !!collection?.isActive,
     isOwnerIfPersonal(user, collection),
+    !collection?.managedBy || user.isAdmin,
     or(
       isCollectionOwner(user, collection),
       isTeamAdmin(user, collection),
@@ -269,6 +286,7 @@ allow(User, "update", Collection, (user, collection) =>
 // has exactly one.
 allow(User, "archive", Collection, (user, collection) =>
   and(
+    !collection?.managedBy,
     //
     !collection?.isPersonal,
     can(user, "update", collection)
@@ -311,6 +329,7 @@ allow(User, "export", Collection, (user, collection) =>
 
 allow(User, "delete", Collection, (user, collection) =>
   and(
+    !collection?.managedBy,
     isTeamModel(user, collection),
     !collection?.deletedAt,
     !collection?.isPersonal,

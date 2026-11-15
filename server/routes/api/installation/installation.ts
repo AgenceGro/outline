@@ -5,6 +5,8 @@ import { ValidationError } from "@server/errors";
 import auth from "@server/middlewares/authentication";
 import { transaction } from "@server/middlewares/transaction";
 import validate from "@server/middlewares/validate";
+import { LockHelper } from "@server/storage/LockHelper";
+import { sequelize } from "@server/storage/database";
 import { Team, User } from "@server/models";
 import type { APIContext } from "@server/types";
 import { signIn } from "@server/utils/authentication";
@@ -23,7 +25,11 @@ router.post(
     const { transaction } = ctx.state;
 
     // Check that this can only be called when there are no existing teams
-    const existingTeamCount = await Team.count({ transaction });
+    await LockHelper.acquire(sequelize, "instance:bootstrap", transaction);
+    const existingTeamCount = await Team.count({
+      transaction,
+      paranoid: false,
+    });
     if (existingTeamCount > 0) {
       throw ValidationError("Installation already has existing teams");
     }

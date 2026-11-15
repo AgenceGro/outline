@@ -8,6 +8,7 @@ import CollectionsStore from "./CollectionsStore";
 import CommentsStore from "./CommentsStore";
 import DialogsStore from "./DialogsStore";
 import DocumentPresenceStore from "./DocumentPresenceStore";
+import { DocumentPropertiesStore } from "./DocumentPropertiesStore";
 import DocumentsStore from "./DocumentsStore";
 import EventsStore from "./EventsStore";
 import EmojisStore from "./EmojiStore";
@@ -23,6 +24,7 @@ import OAuthAuthenticationsStore from "./OAuthAuthenticationsStore";
 import OAuthClientsStore from "./OAuthClientsStore";
 import PinsStore from "./PinsStore";
 import PoliciesStore from "./PoliciesStore";
+import { PropertyDefinitionsStore } from "./PropertyDefinitionsStore";
 import RevisionsStore from "./RevisionsStore";
 import SearchesStore from "./SearchesStore";
 import SharesStore from "./SharesStore";
@@ -46,6 +48,7 @@ export default class RootStore {
   comments: CommentsStore;
   dialogs: DialogsStore;
   documents: DocumentsStore;
+  documentProperties: DocumentPropertiesStore;
   emojis: EmojisStore;
   events: EventsStore;
   groups: GroupsStore;
@@ -59,6 +62,7 @@ export default class RootStore {
   presence: DocumentPresenceStore;
   pins: PinsStore;
   policies: PoliciesStore;
+  propertyDefinitions: PropertyDefinitionsStore;
   revisions: RevisionsStore;
   searches: SearchesStore;
   shares: SharesStore;
@@ -110,6 +114,8 @@ export default class RootStore {
     this.registerStore(DocumentPresenceStore, "presence");
     this.registerStore(DialogsStore, "dialogs");
     this.registerStore(UiStore, "ui");
+    this.registerStore(PropertyDefinitionsStore, "propertyDefinitions");
+    this.registerStore(DocumentPropertiesStore, "documentProperties");
 
     // AuthStore must be initialized last as it makes use of the other stores.
     this.registerStore(AuthStore, "auth");

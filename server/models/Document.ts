@@ -1055,17 +1055,21 @@ class Document extends ArchivableModel<
     }
 
     return documents.filter((doc) => {
+      if (user?.agent) {
+        return true;
+      }
       if (doc.memberships.length > 0 || doc.groupMemberships.length > 0) {
         return true;
       }
 
       // A document without a collection is either an unfiled draft or lives in
       // a collection the user cannot see – access is limited to the creator.
-      if (!doc.collection) {
+      if (!doc.collection || (doc.isDraft && doc.collection.managedBy)) {
         return doc.createdById === userId;
       }
 
       return (
+        !!doc.collection.managedBy ||
         (!doc.collection.isPrivate && !user?.isGuest) ||
         doc.collection.memberships.length > 0 ||
         doc.collection.groupMemberships.length > 0

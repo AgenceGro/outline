@@ -29,46 +29,18 @@ describe("teamProvisioner", () => {
       expect(isNewTeam).toEqual(true);
     });
 
-    it("should set subdomain append if unavailable", async () => {
-      const subdomain = buildSubdomain();
-
-      await buildTeam({
-        subdomain,
-      });
-
-      const result = await teamProvisioner(ctx, {
-        name: "Test team",
-        subdomain,
-        avatarUrl: faker.image.avatar(),
-        authenticationProvider: {
-          name: "google",
-          providerId: `${subdomain}.com`,
-        },
-      });
-
-      expect(result.isNewTeam).toEqual(true);
-      expect(result.team.subdomain).toEqual(`${subdomain}1`);
-    });
-
-    it("should increment subdomain append if unavailable", async () => {
-      const subdomain = buildSubdomain();
-      await buildTeam({
-        subdomain,
-      });
-      await buildTeam({
-        subdomain: `${subdomain}1`,
-      });
-      const result = await teamProvisioner(ctx, {
-        name: "Test team",
-        subdomain,
-        avatarUrl: faker.image.avatar(),
-        authenticationProvider: {
-          name: "google",
-          providerId: `${subdomain}.com`,
-        },
-      });
-
-      expect(result.team.subdomain).toEqual(`${subdomain}2`);
+    it("rejects a second workspace instead of minting a new subdomain", async () => {
+      const team = await buildTeam();
+      await expect(
+        teamProvisioner(ctx, {
+          name: "Second team",
+          subdomain: team.subdomain ?? "second",
+          authenticationProvider: {
+            name: "google",
+            providerId: faker.internet.domainName(),
+          },
+        })
+      ).rejects.toThrow();
     });
 
     it("should return existing team", async () => {

@@ -33,7 +33,6 @@ function Security() {
     sharing: team.sharing,
     defaultUserRole: team.defaultUserRole,
     memberCollectionCreate: team.memberCollectionCreate,
-    memberTeamCreate: team.memberTeamCreate,
     inviteRequired: team.inviteRequired,
   });
 
@@ -148,13 +147,6 @@ function Security() {
   const handleMemberCollectionCreateChange = React.useCallback(
     async (checked: boolean) => {
       await saveData({ memberCollectionCreate: checked });
-    },
-    [saveData]
-  );
-
-  const handleMemberTeamCreateChange = React.useCallback(
-    async (checked: boolean) => {
-      await saveData({ memberTeamCreate: checked });
     },
     [saveData]
   );
@@ -450,19 +442,6 @@ function Security() {
             onChange={handleMemberCollectionCreateChange}
           />
         </SettingRow>
-        {isCloudHosted && (
-          <SettingRow
-            label={t("Workspace creation")}
-            name="memberTeamCreate"
-            description={t("Allow editors to create new workspaces")}
-          >
-            <Switch
-              id="memberTeamCreate"
-              checked={data.memberTeamCreate}
-              onChange={handleMemberTeamCreateChange}
-            />
-          </SettingRow>
-        )}
       </SettingsSection>
     </Scene>
   );

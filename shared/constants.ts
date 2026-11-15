@@ -115,6 +115,7 @@ export const DocumentPreferenceDefaults: DocumentPreferences = {
 };
 
 export const UserPreferenceDefaults: UserPreferences = {
+  [UserPreference.PropertyDateStyle]: "long",
   [UserPreference.RememberLastPath]: true,
   [UserPreference.UseCursorPointer]: true,
   [UserPreference.CodeBlockLineNumers]: true,

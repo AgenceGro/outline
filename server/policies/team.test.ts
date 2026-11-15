@@ -38,14 +38,14 @@ describe("policies/team", () => {
     expect(abilities.createIntegration).toBeTruthy();
   });
 
-  it("should allow creation on hosted envs", async () => {
+  it("should allow admin actions except instance creation on hosted envs", async () => {
     const team = await buildTeam();
     const admin = await buildAdmin({
       teamId: team.id,
     });
     const abilities = serialize(admin, team);
     expect(abilities.read).toBeTruthy();
-    expect(abilities.createTeam).toBeTruthy();
+    expect(abilities.createTeam).toBe(false);
     expect(abilities.createAttachment).toBeTruthy();
     expect(abilities.createCollection).toBeTruthy();
     expect(abilities.createTemplate).toBeTruthy();

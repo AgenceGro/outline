@@ -15,7 +15,6 @@ type Props = React.ComponentProps<typeof ButtonLarge> & {
   id: string;
   name: string;
   authUrl: string;
-  isCreate: boolean;
   onEmailSuccess: (email: string) => void;
   preferOTP: boolean;
 };
@@ -27,8 +26,7 @@ function AuthenticationProvider(props: Props) {
   const [authState, setAuthState] = React.useState<AuthState>("initial");
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [email, setEmail] = React.useState("");
-  const { isCreate, id, name, authUrl, onEmailSuccess, preferOTP, ...rest } =
-    props;
+  const { id, name, authUrl, onEmailSuccess, preferOTP, ...rest } = props;
   const clientType = Desktop.isElectron() ? Client.Desktop : Client.Web;
 
   const handleChangeEmail = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,10 +69,6 @@ function AuthenticationProvider(props: Props) {
   }
 
   if (id === "email") {
-    if (isCreate) {
-      return null;
-    }
-
     return (
       <Wrapper>
         <Form method="POST" action="/auth/email" onSubmit={handleSubmitEmail}>

@@ -76,7 +76,19 @@ const isolatedServerTestFiles = globSync(serverTestFiles, {
   return header.includes(ISOLATED_MARKER);
 });
 
+const upgradeTests = ["server/test/instanceUpgrade.test.ts"];
+const instanceTests = ["server/routes/api/documentProperties/agent.test.ts"];
+const provisioningTests = [
+  "server/commands/teamProvisioner.test.ts",
+  "server/commands/accountProvisioner.test.ts",
+];
+const fixtureSetup = [
+  "./server/test/fixtureDatabase.ts",
+  "./server/test/globalTeardown.ts",
+];
+
 const serverTestConfig = {
+  sequence: { setupFiles: "list" as const },
   globals: true,
   environment: "node" as const,
   setupFiles: [
@@ -101,7 +113,13 @@ export default defineConfig({
         test: {
           ...serverTestConfig,
           name: "server",
+          globalSetup: fixtureSetup,
+          setupFiles: [
+            "./server/test/useFixtureDatabase.ts",
+            ...serverTestConfig.setupFiles,
+          ],
           include: isolatedServerTestFiles,
+          exclude: [...upgradeTests, ...instanceTests, ...provisioningTests],
         },
       },
       {
@@ -110,8 +128,57 @@ export default defineConfig({
           ...serverTestConfig,
           name: "server-shared",
           include: serverTestFiles,
-          exclude: [...configDefaults.exclude, ...isolatedServerTestFiles],
+          globalSetup: fixtureSetup,
+          setupFiles: [
+            "./server/test/useFixtureDatabase.ts",
+            ...serverTestConfig.setupFiles,
+          ],
+          exclude: [
+            ...configDefaults.exclude,
+            ...isolatedServerTestFiles,
+            ...upgradeTests,
+            ...instanceTests,
+            ...provisioningTests,
+          ],
           isolate: false,
+        },
+      },
+      {
+        ...sharedConfig,
+        test: {
+          ...serverTestConfig,
+          name: "server-instance",
+          globalSetup: fixtureSetup,
+          setupFiles: [
+            "./server/test/useFixtureDatabase.ts",
+            ...serverTestConfig.setupFiles,
+          ],
+          include: instanceTests,
+        },
+      },
+      {
+        ...sharedConfig,
+        test: {
+          name: "server-upgrade",
+          globals: true,
+          globalSetup: ["./server/test/fixtureDatabase.ts"],
+          setupFiles: ["./server/test/useFixtureDatabase.ts"],
+          include: upgradeTests,
+        },
+      },
+      {
+        ...sharedConfig,
+        test: {
+          ...serverTestConfig,
+          name: "server-provisioning",
+          include: provisioningTests,
+          fileParallelism: false,
+          globalSetup: fixtureSetup,
+          setupFiles: [
+            "./server/test/useFixtureDatabase.ts",
+            ...serverTestConfig.setupFiles,
+            "./server/test/resetProvisioningFixtures.ts",
+          ],
         },
       },
       {

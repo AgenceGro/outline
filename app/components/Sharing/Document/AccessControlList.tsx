@@ -25,6 +25,7 @@ import CollectionIcon from "../../Icons/CollectionIcon";
 import Tooltip from "../../Tooltip";
 import { Separator } from "../components";
 import { ListItem } from "../components/ListItem";
+import { ManagedNotice, ManagedReaders } from "../components/ManagedNotice";
 import { Placeholder } from "../components/Placeholder";
 import DocumentMemberList from "./DocumentMemberList";
 import PublicAccess from "./PublicAccess";
@@ -63,6 +64,7 @@ export const AccessControlList = observer(
     const user = useCurrentUser();
     const { groupMemberships, users } = useStores();
     const collectionSharingDisabled = document.collection?.sharing === false;
+    const managed = !!collection?.isManaged;
     const team = useCurrentTeam();
     const can = usePolicy(document);
     const canCollection = usePolicy(collection);
@@ -125,7 +127,14 @@ export const AccessControlList = observer(
             </>
           ) : collection && canCollection.readDocument ? (
             <>
-              {collection.permission ? (
+              {managed ? (
+                <>
+                  <ManagedNotice />
+                  <ManagedReaders
+                    actions={<AccessTooltip>{t("Can view")}</AccessTooltip>}
+                  />
+                </>
+              ) : collection.permission ? (
                 <ListItem
                   image={
                     <Squircle color={theme.accent} size={AvatarSize.Medium}>
@@ -215,18 +224,22 @@ export const AccessControlList = observer(
             </>
           )}
         </ScrollableContainer>
-        {team.sharing && can.share && !collectionSharingDisabled && visible && (
-          <Sticky>
-            {document.members.length ? <Separator /> : null}
-            <PublicAccess
-              ref={publicAccessRef}
-              document={document}
-              share={share}
-              sharedParent={sharedParent}
-              onRequestClose={onRequestClose}
-            />
-          </Sticky>
-        )}
+        {!managed &&
+          team.sharing &&
+          can.share &&
+          !collectionSharingDisabled &&
+          visible && (
+            <Sticky>
+              {document.members.length ? <Separator /> : null}
+              <PublicAccess
+                ref={publicAccessRef}
+                document={document}
+                share={share}
+                sharedParent={sharedParent}
+                onRequestClose={onRequestClose}
+              />
+            </Sticky>
+          )}
       </Wrapper>
     );
   }

@@ -20,7 +20,7 @@ export function SwitchHostButton() {
 
   const handleClick = useCallback(() => {
     dialogs.openModal({
-      title: t("Choose workspace"),
+      title: t("Change Outline address"),
       content: <SwitchHostDialog />,
     });
   }, [dialogs, t]);
@@ -33,8 +33,8 @@ export function SwitchHostButton() {
 
   return (
     <Position>
-      <Tooltip content={t("Choose workspace")} side="bottom">
-        <Button onClick={handleClick} aria-label={t("Choose workspace")}>
+      <Tooltip content={t("Change Outline address")} side="bottom">
+        <Button onClick={handleClick} aria-label={t("Change Outline address")}>
           <Host>{window.location.host}</Host>
           <GlobeIcon />
         </Button>

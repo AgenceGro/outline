@@ -1,51 +1,27 @@
 import { BackIcon } from "outline-icons";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
-import { parseDomain } from "@shared/utils/domains";
-import type { Config } from "~/stores/AuthStore";
-import env from "~/env";
 import Desktop from "~/utils/Desktop";
-import isCloudHosted from "~/utils/isCloudHosted";
-import { DefaultHost } from "../urls";
 
 type Props = {
-  config?: Config;
+  /** Returns to the previous step of sign-in; nothing renders without it. */
   onBack?: () => void;
 };
 
-export function BackButton({ onBack, config }: Props) {
+/**
+ * Link back to the previous step of signing in to this Outline instance.
+ * There's no other instance or marketing site to return to.
+ */
+export function BackButton({ onBack }: Props) {
   const { t } = useTranslation();
-  const isSubdomain = !!config?.hostname;
 
-  if (onBack) {
-    return (
-      <Link onClick={onBack}>
-        <BackIcon /> {t("Back")}
-      </Link>
-    );
-  }
-
-  // In the desktop app any host other than the default is one the user has
-  // switched to, so back always returns to the default host.
-  if (Desktop.isElectron()) {
-    if (window.location.origin === DefaultHost) {
-      return null;
-    }
-
-    return (
-      <Link href={DefaultHost}>
-        <BackIcon /> {t("Back")}
-      </Link>
-    );
-  }
-
-  if (!isCloudHosted || parseDomain(window.location.origin).custom) {
+  if (!onBack) {
     return null;
   }
 
   return (
-    <Link href={isSubdomain ? env.URL : "https://www.getoutline.com"}>
-      <BackIcon /> {t("Back to home")}
+    <Link onClick={onBack}>
+      <BackIcon /> {t("Back")}
     </Link>
   );
 }

@@ -56,7 +56,7 @@ const updateUserRoleActionFactory = (role: UserRole) =>
     selected: (context) =>
       everyActiveModel(context, User, (user) => user.role === role),
     visible: (context) =>
-      everyActiveModel(context, User, (user) => {
+      everyActivePerson(context, (user) => {
         if (user.role === role) {
           return true;
         }
@@ -90,7 +90,7 @@ export const changeUserRole = createActionWithChildren({
   analyticsName: "Change user role",
   section: UserSection,
   visible: (context) =>
-    everyActiveModel(context, User, (user) => {
+    everyActivePerson(context, (user) => {
       const can = context.stores.policies.abilities(user.id);
       return can.demote || can.promote;
     }),
@@ -155,9 +155,8 @@ export const suspendUser = dialogActionFactory({
   iconInContextMenu: false,
   dangerous: true,
   visible: (context) =>
-    everyActiveModel(
+    everyActivePerson(
       context,
-      User,
       (user) =>
         !user.isInvited &&
         !user.isSuspended &&
@@ -172,9 +171,8 @@ export const activateUser = createAction({
   icon: <DoneIcon />,
   iconInContextMenu: false,
   visible: (context) =>
-    everyActiveModel(
+    everyActivePerson(
       context,
-      User,
       (user) =>
         !user.isInvited &&
         user.isSuspended &&
@@ -199,9 +197,8 @@ export const resendInvite = createAction({
   icon: <EmailIcon />,
   iconInContextMenu: false,
   visible: (context) =>
-    everyActiveModel(
+    everyActivePerson(
       context,
-      User,
       (user) => context.stores.policies.abilities(user.id).resendInvite
     ),
   perform: async (context) => {
@@ -235,8 +232,7 @@ export const revokeInvite = createAction({
   icon: <UserRemoveIcon />,
   iconInContextMenu: false,
   dangerous: true,
-  visible: (context) =>
-    everyActiveModel(context, User, (user) => user.isInvited),
+  visible: (context) => everyActivePerson(context, (user) => user.isInvited),
   perform: (context) =>
     performBatchOnActiveModels(
       context,
@@ -265,9 +261,8 @@ export const deleteUser = dialogActionFactory({
   keywords: "leave",
   dangerous: true,
   visible: (context) =>
-    everyActiveModel(
+    everyActivePerson(
       context,
-      User,
       (user) => context.stores.policies.abilities(user.id).delete
     ),
 });
@@ -282,5 +277,17 @@ const singleActiveUser = ({ getActiveModels }: ActionContext) => {
 
 const canUpdateSingleUser = (context: ActionContext) => {
   const user = singleActiveUser(context);
-  return !!user && context.stores.policies.abilities(user.id).update;
+  return (
+    !!user && !user.isAgent && context.stores.policies.abilities(user.id).update
+  );
 };
+
+/**
+ * Whether every active user is a person who matches the predicate. Agents are
+ * not managed like people, so user actions never apply to them.
+ */
+const everyActivePerson = (
+  context: ActionContext,
+  predicate: (user: User) => boolean
+) =>
+  everyActiveModel(context, User, (user) => !user.isAgent && predicate(user));

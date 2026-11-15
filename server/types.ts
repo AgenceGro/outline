@@ -43,6 +43,7 @@ import type {
   GroupMembership,
   Import,
   OAuthClient,
+  PropertyInstallation,
 } from "./models";
 
 export { AuthenticationType } from "@shared/types";
@@ -76,6 +77,7 @@ export type AppState = {
   pagination: Pagination;
   /** The teams authorized to receive an inbound webhook. */
   webhookTeamIds?: string[];
+  propertyInstallation?: PropertyInstallation;
   oauthClient?: OAuthClient;
   oauthIntent?: OAuthIntent;
   oauthState?: OAuthState;
